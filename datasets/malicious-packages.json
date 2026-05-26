@@ -1,0 +1,12 @@
+[
+  "event-stream",
+  "flatmap-stream",
+  "ua-parser-js",
+  "coa",
+  "rc",
+  "node-ipc",
+  "colors",
+  "faker",
+  "vue-native-core",
+  "crossenv"
+]

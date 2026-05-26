@@ -1,0 +1,19 @@
+name: Smoke Tests
+on:
+  workflow_dispatch: {}
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20.11.1'
+      - name: Install
+        run: npm ci
+      - name: Run smoke tests
+        env:
+          TS_NODE_FILES: 'true'
+          TS_NODE_TRANSPILE_ONLY: 'true'
+        run: node --loader ts-node/esm ./scripts/smoke-test.ts

@@ -1,0 +1,12 @@
+[
+  "nx",
+  "turbo",
+  "lerna",
+  "pnpm",
+  "@nrwl/workspace",
+  "@changesets/cli",
+  "@rushstack/rush",
+  "@manypkg/cli",
+  "@yarnpkg/cli",
+  "lage"
+]

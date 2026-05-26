@@ -1,0 +1,22 @@
+name: SlopGuard
+description: Validate npm packages before install
+author: SlopGuard
+runs:
+  using: node20
+  main: dist/action.js
+inputs:
+  mode:
+    description: warn or block
+    required: false
+    default: warn
+  path:
+    description: root path to scan (directory or package.json)
+    required: false
+    default: .
+  concurrency:
+    description: max parallel validations
+    required: false
+    default: "10"
+branding:
+  icon: shield
+  color: blue

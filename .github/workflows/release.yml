@@ -1,0 +1,21 @@
+name: Release
+on:
+  release:
+    types: [published]
+
+jobs:
+  verify-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      - name: Install
+        run: npm ci
+      - name: Run release checks
+        run: npx ts-node ./scripts/release-check.ts
+      - name: Publish (placeholder)
+        if: success()
+        run: echo "Publishing artifacts (manual gated step)"

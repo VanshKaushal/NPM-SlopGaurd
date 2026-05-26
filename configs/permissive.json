@@ -1,0 +1,9 @@
+{
+  "maxRiskScore": 65,
+  "blockHallucinatedPackages": true,
+  "allowInstallScripts": "warn",
+  "requireProvenance": false,
+  "maxDependencyDepth": 30,
+  "blockNewPackages": false,
+  "minimumConfidence": "low"
+}

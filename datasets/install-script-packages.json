@@ -1,0 +1,12 @@
+[
+  "node-sass",
+  "esbuild",
+  "sharp",
+  "fsevents",
+  "cypress",
+  "playwright",
+  "puppeteer",
+  "sqlite3",
+  "grpc",
+  "node-gyp"
+]

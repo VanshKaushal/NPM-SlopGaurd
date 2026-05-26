@@ -1,0 +1,32 @@
+{
+  "name": "slopguard",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "SlopGuard — zero-infrastructure npm package validation firewall",
+  "main": "./dist/cli.js",
+  "bin": {
+    "slopguard": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc -p .",
+    "start": "node ./dist/cli.js",
+    "dev": "ts-node-esm src/cli.ts",
+    "test": "npm run build && node --test ./tests/*.test.js",
+    "hotlist:validate": "node ./scripts/validate-hotlist.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "chalk": "^5.0.0",
+    "semver": "^7.6.0",
+    "yaml": "^2.5.0",
+    "zod": "^3.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "ts-node": "^10.0.0",
+    "typescript": "^5.0.0"
+  }
+}

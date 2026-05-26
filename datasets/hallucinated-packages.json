@@ -1,0 +1,12 @@
+[
+  "react-dom-next",
+  "openai-tools",
+  "node-httpx",
+  "json-safety",
+  "secure-buffer-js",
+  "aws-kms-client",
+  "vite-react-pro",
+  "nextjs-runtime",
+  "typescript-helpers",
+  "npm-registry-guard"
+]

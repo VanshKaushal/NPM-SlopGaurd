@@ -1,0 +1,23 @@
+[
+  "react",
+  "express",
+  "lodash",
+  "vite",
+  "next",
+  "typescript",
+  "eslint",
+  "prisma",
+  "rxjs",
+  "zod",
+  "@types/node",
+  "@nestjs/core",
+  "@sentry/node",
+  "@reduxjs/toolkit",
+  "@vercel/analytics",
+  "@octokit/rest",
+  "fastify",
+  "chalk",
+  "commander",
+  "axios",
+  "dayjs"
+]
