@@ -1,168 +1,432 @@
-# SlopGuard
+# 🚨 SlopGuard
 
-SlopGuard is a zero-infrastructure npm package validation firewall. It blocks hallucinated or hotlisted packages and warns on risky signals before install.
+### Zero-Infrastructure npm Package Validation Firewall
 
-## Quick start
+> Detect hallucinated, typosquatted, compromised, or high-risk npm packages **before they enter your supply chain**.
+
+---
+
+<div align="center">
+
+![npm](https://img.shields.io/badge/npm-security-red)
+![node](https://img.shields.io/badge/node-%3E%3D20-brightgreen)
+![typescript](https://img.shields.io/badge/built_with-TypeScript-blue)
+![license](https://img.shields.io/badge/license-MIT-purple)
+![status](https://img.shields.io/badge/status-active-success)
+
+</div>
+
+---
+
+# 🔥 What is SlopGuard?
+
+SlopGuard is a lightweight security firewall for npm installs.
+
+It analyzes packages using multiple risk signals and blocks suspicious dependencies before installation.
+
+## 🛡️ Detects
+
+* ❌ Hallucinated AI-generated package names
+* 🎭 Typosquatted packages
+* ☠️ Suspicious publishers
+* ⚠️ Freshly published malware
+* 📉 Low-trust download patterns
+* 🧪 High-risk package anomalies
+
+No infrastructure. No cloud dependency. Just local validation.
+
+---
+
+# ⚡ Requirements
+
+* 🟢 Node.js `>= 20`
+
+---
+
+# 📦 Installation
 
 ```bash
 npm install
+```
+
+---
+
+# 🏗️ Build
+
+Compile TypeScript output:
+
+```bash
 npm run build
-node ./dist/cli.js check react
 ```
 
-## CLI
+---
 
-Validate a single package:
+# 🧪 Development Mode
+
+Run directly without building:
 
 ```bash
-node ./dist/cli.js check react
-node ./dist/cli.js check react@18.2.0
+npm run dev
 ```
 
-Scan `package.json` in the current folder:
+---
+
+# 🚀 CLI Usage
+
+## ✅ Validate a Single Package
 
 ```bash
-node ./dist/cli.js scan
+npx slopguard check react
 ```
 
-Flags:
+---
 
-- `--allow` allowlist a package for a single run
-- `--ignore-warnings` treat warnings as success
+## 🔎 Validate a Specific Version
 
-Exit codes:
-
-```txt
-0 = safe
-1 = blocked
-2 = warnings only
+```bash
+npx slopguard check react@18.2.0
 ```
 
-## MCP server
+---
 
-Run the MCP server (stdio):
+## 📂 Scan Current Project Dependencies
+
+```bash
+npx slopguard scan
+```
+
+---
+
+## 🧱 Recursive Workspace Scan
+
+```bash
+npx slopguard scan --recursive
+```
+
+---
+
+# 🛠️ Supported Commands
+
+| Command                   | Description             |
+| ------------------------- | ----------------------- |
+| `check <pkg[@version]>`   | Validate a package      |
+| `scan`                    | Scan current project    |
+| `scan-workspace`          | Scan monorepo/workspace |
+| `install <pkg[@version]>` | Safe install wrapper    |
+
+---
+
+# 🎛️ CLI Flags
+
+| Flag                | Purpose                       |
+| ------------------- | ----------------------------- |
+| `--allow`           | Temporarily allow a package   |
+| `--ignore-warnings` | Convert warnings into success |
+
+---
+
+# 🚦 Exit Codes
+
+| Code | Meaning          |
+| ---- | ---------------- |
+| `0`  | ✅ Safe           |
+| `1`  | ❌ Hard blocked   |
+| `2`  | ⚠️ Warnings only |
+
+---
+
+# 🧠 MCP Server (Model Context Protocol)
+
+Run the MCP server:
 
 ```bash
 node ./dist/mcp.js
 ```
 
-Tools:
+Compatible with stdio-based MCP clients.
 
-- `check_package` inputs: `{ package, allow?, ignoreWarnings? }`
-- `scan_package_json` inputs: `{ cwd? }`
+---
 
-Both return JSON serialized as text to stay compatible with strict MCP content typing.
+## 🔌 Supported MCP Tools
 
-## GitHub Action
+### `check_package`
 
-`action.yml` uses the compiled `dist/action.js` entrypoint.
-
-Example workflow:
-
-```yaml
-name: SlopGuard
-on:
-	pull_request:
-jobs:
-	slopguard:
-		runs-on: ubuntu-latest
-		steps:
-			- uses: actions/checkout@v4
-			- uses: ./.
-				with:
-					mode: warn
-					path: .
-					concurrency: 10
-```
-
-## MCP config
-
-Example MCP client entry:
+Inputs:
 
 ```json
 {
-	"mcpServers": {
-		"slopguard": {
-			"command": "node",
-			"args": ["./dist/mcp.js"]
-		}
-	}
+  "package": "react",
+  "allow": false,
+  "ignoreWarnings": false
 }
 ```
 
-## Architecture
+---
 
-Single validation core lives in `src/core` and is reused by CLI, MCP, and Action.
+### `scan_package_json`
 
-Signals:
+Inputs:
 
-1. Registry existence (hard block)
-2. Publisher account age (warn)
-3. Version age (warn)
-4. Download velocity (warn)
-5. Hallucination hotlist (hard block, local JSON)
-6. Provenance attestation (warn)
+```json
+{
+  "cwd": "./"
+}
+```
 
-## Threat model
+---
 
-SlopGuard is designed to stop:
+## ⚙️ Example MCP Client Config
 
-- AI hallucinated package names
-- Typosquatted packages
-- Freshly weaponized packages with low trust signals
+```json
+{
+  "mcpServers": {
+    "slopguard": {
+      "command": "node",
+      "args": ["./dist/mcp.js"]
+    }
+  }
+}
+```
 
-It is intentionally conservative: only non-existent or hotlisted packages hard-fail by default.
+---
 
-## False-positive philosophy
+# ⚡ GitHub Action
 
-SlopGuard only hard-blocks when the package is missing or confirmed on the hotlist. All other signals are warnings by default to minimize disruption.
+This repository ships with a built-in GitHub Action.
 
-## Slopsquatting examples
+## 📄 Example Workflow
 
-Common typos seen in the wild:
+```yaml
+uses: ./.
+with:
+  mode: warn
+  path: .
+  concurrency: 10
+```
 
-- `reacts`
-- `expresss`
-- `lodsh`
+---
 
-## Configuration
+# ⚙️ Configuration
 
-Create `slopguard.config.js` to customize thresholds and behavior. A sample is included in the repo root.
+Create a `slopguard.config.js` file in your project root.
+
+## 📄 Example
 
 ```js
 export default {
-	thresholds: {
-		publisherAgeDays: 30,
-		versionAgeHours: 48,
-		downloadVelocityMin: 200
-	},
-	allowlist: [],
-	ignored: [],
-	disableSignals: {},
-	offline: false,
-	strict: false
+  thresholds: {
+    publisherAgeDays: 30,
+    versionAgeHours: 48,
+    downloadVelocityMin: 200
+  },
+
+  allowlist: [],
+
+  ignored: [],
+
+  disableSignals: {},
+
+  offline: false,
+
+  strict: false
 }
 ```
 
-## Hotlist
+---
 
-Edit `src/data/hotlist.json` with entries like:
+# 🚨 Hotlist Database
+
+Hotlist data lives in:
+
+```bash
+src/data/hotlist.json
+```
+
+⚠️ Edit cautiously.
+
+## 📄 Example Entry
 
 ```json
 [
-	{
-		"name": "reacts",
-		"source": "example",
-		"confidence": 0.9,
-		"notes": "Common typo"
-	}
+  {
+    "name": "reacts",
+    "source": "example",
+    "confidence": 0.9,
+    "notes": "common typo"
+  }
 ]
 ```
 
-## GIF demo
+---
 
-Add a short terminal demo GIF here once CLI UX is finalized.
+# 📜 Available Scripts
 
-## Contributing
+| Script                     | Description                |
+| -------------------------- | -------------------------- |
+| `npm run build`            | Compile TypeScript         |
+| `npm run dev`              | Run CLI in development     |
+| `npm test`                 | Run repository tests       |
+| `npm run hotlist:validate` | Validate hotlist structure |
 
-See CONTRIBUTING.md for contribution workflow and hotlist rules.
+---
+
+# 🧩 Project Structure
+
+## 🚪 Entry Points
+
+```bash
+src/cli.ts
+src/mcp/mcp.ts
+src/action.ts
+```
+
+---
+
+## 🧠 Core Engine
+
+Reusable validation logic:
+
+```bash
+src/core/
+```
+
+Used by:
+
+* CLI
+* MCP server
+* GitHub Action
+
+---
+
+## 🧪 Tests
+
+```bash
+tests/
+```
+
+Run with:
+
+```bash
+npm test
+```
+
+---
+
+# 🔒 Security Philosophy
+
+SlopGuard assumes:
+
+> "If a package looks suspicious, treat it as hostile until proven otherwise."
+
+Modern package ecosystems are increasingly attacked through:
+
+* dependency confusion
+* typo attacks
+* AI hallucinations
+* publisher takeovers
+* malicious rapid-publish malware
+
+SlopGuard is designed to reduce that attack surface.
+
+---
+
+# 🤝 Contributing
+
+Please read:
+
+```bash
+CONTRIBUTING.md
+```
+
+Before submitting:
+
+* hotlist changes
+* detection heuristics
+* validation logic
+* new risk signals
+
+---
+
+# 🧭 Roadmap
+
+* [ ] Lockfile deep inspection
+* [ ] Registry reputation scoring
+* [ ] Package behavior fingerprinting
+* [ ] Offline intelligence bundles
+* [ ] VSCode extension
+* [ ] pnpm/yarn native hooks
+* [ ] SARIF security reporting
+* [ ] CI risk dashboards
+
+---
+
+# 💡 Example Use Cases
+
+## 🛡️ Secure CI/CD Pipelines
+
+Block malicious dependencies before merge.
+
+---
+
+## 🤖 AI-Assisted Coding Protection
+
+Catch hallucinated package installs from LLM-generated code.
+
+---
+
+## 🧱 Enterprise Monorepo Defense
+
+Scan large workspaces recursively.
+
+---
+
+## 🔬 Security Research
+
+Analyze suspicious npm ecosystem activity.
+
+---
+
+# 📌 Why SlopGuard Exists
+
+AI coding assistants increasingly generate:
+
+* nonexistent packages
+* typo packages
+* malicious dependencies
+* stale package references
+
+Developers copy-paste blindly.
+
+That creates a new supply-chain attack vector.
+
+SlopGuard exists to stop that.
+
+---
+
+# ⭐ Example
+
+```bash
+$ npx slopguard check reat
+
+❌ BLOCKED: Possible typosquat detected
+
+Suggested package:
+→ react
+
+Confidence:
+→ 97%
+```
+
+---
+
+# 🧠 Philosophy
+
+Minimal infrastructure.
+Maximum paranoia.
+Fast local enforcement.
+
+---
+
+# 📄 License
+
+MIT License © 2026
