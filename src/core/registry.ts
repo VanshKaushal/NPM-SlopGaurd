@@ -55,16 +55,21 @@ type PackageMetadata = {
 export async function checkPackageExists(
   pkgName: string,
   timeoutMs = 3000
-): Promise<{ exists: boolean | null; status: number }> {
+): Promise<{ exists: boolean | null; status: number; degraded?: string; score_penalty?: number }> {
   const key = `registry:exists:${pkgName}`
-  const cached = cache.get<{ exists: boolean | null; status: number }>(key)
+  const cached = cache.get<{ exists: boolean | null; status: number; degraded?: string; score_penalty?: number }>(key)
   if (cached) return cached
 
   return dedupe(key, async () => {
     try {
       const url = `${REGISTRY_BASE}/${encodeURIComponent(pkgName)}`
       const policy = { ...registryPolicy, timeoutMs }
-      const { response } = await resilientFetch(url, {}, policy)
+      const { response, degraded } = await resilientFetch(url, {}, policy)
+      if (degraded === 'circuit_open') {
+        const result = { degraded: 'circuit_open', exists: false, score_penalty: 40, status: 0 }
+        cache.set(key, result, 1000 * 10)
+        return result
+      }
       if (!response) {
         const result = { exists: null, status: 0 }
         cache.set(key, result, 1000 * 10)

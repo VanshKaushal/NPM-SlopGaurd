@@ -3,19 +3,27 @@ on:
   release:
     types: [published]
 
+permissions:
+  contents: write
+  id-token: write
+  packages: write
+
 jobs:
   verify-and-publish:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
-          node-version: '18'
+          node-version: '20.11.1'
+          cache: 'npm'
       - name: Install
         run: npm ci
+      - name: Generate provenance
+        run: npx ts-node ./scripts/generate-provenance.ts
       - name: Run release checks
-        run: npx ts-node ./scripts/release-check.ts
+        run: npx ts-node ./scripts/release-check.ts --require-provenance --provenance-file ./provenance.json --require-signature --provenance-signature ./provenance.sig --provenance-public-key ./provenance.pub
       - name: Publish (placeholder)
         if: success()
         run: echo "Publishing artifacts (manual gated step)"

@@ -1,0 +1,15 @@
+{
+  "name": "fintech-policy",
+  "strictness": "paranoid",
+  "requireProvenance": true,
+  "allowPreReleases": false,
+  "allowUnsigned": false,
+  "allowedRegistries": ["https://registry.npmjs.org"],
+  "bannedLicenses": ["GPL-3.0"],
+  "maxGraphSize": 10000,
+  "auditRequirements": {
+    "critical": "fail",
+    "high": "fail",
+    "moderate": "warn"
+  }
+}

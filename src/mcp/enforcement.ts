@@ -5,8 +5,10 @@ import { PolicyConfig } from '../core/policy.js'
 import { PolicyOverride } from '../core/overrides.js'
 import { evaluatePolicy } from './policy-engine.js'
 
-export type EnforcementInput = {
+
+export type EnforcePolicyInput = {
   pkg: string
+  alias?: string
   result: ValidationResult
   policy: PolicyConfig
   allowlist: { allow: string[] }
@@ -24,9 +26,10 @@ export type EnforcementResult = {
   enforcement: EnforcementOutcome
 }
 
-export function enforcePolicy(input: EnforcementInput): EnforcementResult {
+export function enforcePolicy(input: EnforcePolicyInput): EnforcementResult {
   const decision = evaluatePolicy({
     pkg: input.pkg,
+    alias: input.alias,
     result: input.result,
     policy: input.policy,
     allowlist: input.allowlist,

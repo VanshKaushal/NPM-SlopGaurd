@@ -15,9 +15,30 @@ function toDependencyNode(
   for (const [dep, range] of Object.entries(dependencies)) {
     if (typeof range === 'string') deps.set(dep, range)
   }
+  
+  let realName = name
+  let realVersion = version
+  let alias: string | undefined = undefined
+  
+  if (version?.startsWith('npm:')) {
+    const parts = version.slice(4).split('@')
+    if (parts.length >= 2) {
+       // Handle npm:@scope/pkg@version
+       if (version.startsWith('npm:@')) {
+         realName = '@' + parts[1]
+         realVersion = parts.slice(2).join('@')
+       } else {
+         realName = parts[0]
+         realVersion = parts.slice(1).join('@')
+       }
+       alias = name
+    }
+  }
+
   return {
-    name,
-    version,
+    name: realName,
+    version: realVersion,
+    alias,
     dependencies: deps,
     integrity: data?.integrity,
     resolved: data?.resolved,
@@ -39,11 +60,17 @@ export function parsePackageLock(filePath: string): DependencyGraph {
     for (const [pkgPath, data] of Object.entries(packages)) {
       if (!data || typeof data !== 'object') continue
       if (pkgPath === '') continue
-      const name = (data as any).name ?? null
+      const name = (data as any).name ?? pkgPath.split('node_modules/').pop() ?? null
       const version = (data as any).version ?? null
       if (!name || !version) continue
       const node = toDependencyNode(name, version, data)
-      nodes.set(nodeKey(name, version), node)
+      
+      const pathName = pkgPath.split('node_modules/').pop()
+      if (pathName && pathName !== node.name) {
+         node.alias = pathName
+      }
+      
+      nodes.set(nodeKey(pathName || name, version), node)
     }
 
     const root = packages[''] ?? {}

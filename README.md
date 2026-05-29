@@ -1,168 +1,148 @@
 # SlopGuard
 
-SlopGuard is a zero-infrastructure npm package validation firewall. It blocks hallucinated or hotlisted packages and warns on risky signals before install.
+SlopGuard is a zero-infrastructure npm package validation firewall. It detects hallucinated, typosquatted, or otherwise high-risk packages and blocks or warns before install.
 
-## Quick start
+**Requirements:** Node.js >= 20
+
+**Install & build**
+
+- Install dependencies:
 
 ```bash
 npm install
+```
+
+- Build TypeScript output:
+
+```bash
 npm run build
-node ./dist/cli.js check react
 ```
 
-## CLI
-
-Validate a single package:
+- Run in development (no build):
 
 ```bash
-node ./dist/cli.js check react
-node ./dist/cli.js check react@18.2.0
+npm run dev
 ```
 
-Scan `package.json` in the current folder:
+**Quick usage (CLI)**
+
+- Validate a single package:
 
 ```bash
-node ./dist/cli.js scan
+npx slopguard check react
 ```
+
+- Validate a specific version:
+
+```bash
+npx slopguard check react@18.2.0
+```
+
+- Scan the current folder's dependencies:
+
+```bash
+npx slopguard scan
+```
+
+- Recursive workspace scan:
+
+```bash
+npx slopguard scan --recursive
+```
+
+Commands supported: `check <pkg[@version]>`, `scan`, `scan-workspace`, `install <pkg[@version]>`.
 
 Flags:
 
-- `--allow` allowlist a package for a single run
-- `--ignore-warnings` treat warnings as success
+- `--allow` — temporarily allow a package for this run
+- `--ignore-warnings` — treat warnings as success (exit code 0)
 
 Exit codes:
 
-```txt
-0 = safe
-1 = blocked
-2 = warnings only
-```
+- `0` = safe
+- `1` = hard-blocked (unsafe)
+- `2` = warnings only (non-fatal issues)
 
-## MCP server
+**MCP server (Model Context Protocol)**
 
-Run the MCP server (stdio):
+Run the MCP server (stdio-compatible):
 
 ```bash
 node ./dist/mcp.js
 ```
 
-Tools:
+Supported tool calls:
 
-- `check_package` inputs: `{ package, allow?, ignoreWarnings? }`
-- `scan_package_json` inputs: `{ cwd? }`
+- `check_package` — inputs `{ package, allow?, ignoreWarnings? }`
+- `scan_package_json` — inputs `{ cwd? }`
 
-Both return JSON serialized as text to stay compatible with strict MCP content typing.
+Both return JSON serialized as text for compatibility.
 
-## GitHub Action
-
-`action.yml` uses the compiled `dist/action.js` entrypoint.
-
-Example workflow:
-
-```yaml
-name: SlopGuard
-on:
-	pull_request:
-jobs:
-	slopguard:
-		runs-on: ubuntu-latest
-		steps:
-			- uses: actions/checkout@v4
-			- uses: ./.
-				with:
-					mode: warn
-					path: .
-					concurrency: 10
-```
-
-## MCP config
-
-Example MCP client entry:
+Example MCP client entry (mcp config):
 
 ```json
 {
-	"mcpServers": {
-		"slopguard": {
-			"command": "node",
-			"args": ["./dist/mcp.js"]
-		}
-	}
+  "mcpServers": {
+    "slopguard": {
+      "command": "node",
+      "args": ["./dist/mcp.js"]
+    }
+  }
 }
 ```
 
-## Architecture
+**GitHub Action**
 
-Single validation core lives in `src/core` and is reused by CLI, MCP, and Action.
+This repository includes `action.yml` and a compiled action entrypoint (used from `dist/action.js`). Minimal workflow example:
 
-Signals:
+```yaml
+uses: ./.
+with:
+  mode: warn
+  path: .
+  concurrency: 10
+```
 
-1. Registry existence (hard block)
-2. Publisher account age (warn)
-3. Version age (warn)
-4. Download velocity (warn)
-5. Hallucination hotlist (hard block, local JSON)
-6. Provenance attestation (warn)
+**Configuration**
 
-## Threat model
-
-SlopGuard is designed to stop:
-
-- AI hallucinated package names
-- Typosquatted packages
-- Freshly weaponized packages with low trust signals
-
-It is intentionally conservative: only non-existent or hotlisted packages hard-fail by default.
-
-## False-positive philosophy
-
-SlopGuard only hard-blocks when the package is missing or confirmed on the hotlist. All other signals are warnings by default to minimize disruption.
-
-## Slopsquatting examples
-
-Common typos seen in the wild:
-
-- `reacts`
-- `expresss`
-- `lodsh`
-
-## Configuration
-
-Create `slopguard.config.js` to customize thresholds and behavior. A sample is included in the repo root.
+Create `slopguard.config.js` in the repo root to override behavior. Example options:
 
 ```js
 export default {
-	thresholds: {
-		publisherAgeDays: 30,
-		versionAgeHours: 48,
-		downloadVelocityMin: 200
-	},
-	allowlist: [],
-	ignored: [],
-	disableSignals: {},
-	offline: false,
-	strict: false
+  thresholds: {
+    publisherAgeDays: 30,
+    versionAgeHours: 48,
+    downloadVelocityMin: 200
+  },
+  allowlist: [],
+  ignored: [],
+  disableSignals: {},
+  offline: false,
+  strict: false
 }
 ```
 
-## Hotlist
-
-Edit `src/data/hotlist.json` with entries like:
+Hotlist data is kept in `src/data/hotlist.json` — edit cautiously. A sample entry:
 
 ```json
-[
-	{
-		"name": "reacts",
-		"source": "example",
-		"confidence": 0.9,
-		"notes": "Common typo"
-	}
-]
+[{ "name": "reacts", "source": "example", "confidence": 0.9, "notes": "common typo" }]
 ```
 
-## GIF demo
+**Scripts**
 
-Add a short terminal demo GIF here once CLI UX is finalized.
+- `npm run build` — compile TypeScript
+- `npm run dev` — run `src/cli.ts` via `ts-node` (dev)
+- `npm test` — run repository tests (`scripts/run-tests.mjs`)
+- `npm run hotlist:validate` — validate hotlist format
 
-## Contributing
+**Development notes**
 
-See CONTRIBUTING.md for contribution workflow and hotlist rules.
+- Entry points: `src/cli.ts`, `src/mcp/mcp.ts`, `src/action.ts`.
+- Core validation logic is in `src/core/` and reused by CLI, MCP server, and the GitHub Action.
+- Tests live in `tests/` and can be executed with `npm test`.
+
+**Contributing**
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution workflow and hotlist rules.
+
+If you need help running the project locally or want me to add usage examples (GIFs, workflow examples, or expanded MCP docs), tell me which area to expand.

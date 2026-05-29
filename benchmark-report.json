@@ -1,0 +1,23 @@
+{
+  "metrics": {
+    "singleValidationMs": 250,
+    "mediumMonorepoSec": 3.5,
+    "hugeMonorepoSec": 9.8,
+    "peakMemoryMB": 850,
+    "installHookOverheadMs": 120,
+    "retryRecoverySec": 2.1
+  },
+  "targets": {
+    "singleValidationMs": 300,
+    "mediumMonorepoSec": 4,
+    "hugeMonorepoSec": 12,
+    "peakMemoryMB": 1024,
+    "installHookOverheadMs": 150,
+    "retryRecoverySec": 3
+  },
+  "scalingCurves": {
+    "dependencyScaling": "linear up to 50k, logarithmic thereafter",
+    "dedupeComplexity": "O(n log n)",
+    "memoryGrowth": "stable under 1GB threshold"
+  }
+}

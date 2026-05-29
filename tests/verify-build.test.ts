@@ -22,7 +22,7 @@ function createFixture() {
 
 test('verify-build produces digest for dist/', () => {
   const fixture = createFixture()
-  const res = spawnSync(process.execPath, ['--loader', 'ts-node/esm', './scripts/verify-build.ts', '--workspace', fixture], {
+  const res = spawnSync(process.execPath, ['./dist/scripts/verify-build.js', '--workspace', fixture], {
     cwd: process.cwd(),
     env: { ...process.env, SLOPGUARD_SKIP_INSTALL: '1' },
     encoding: 'utf8'

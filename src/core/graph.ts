@@ -22,6 +22,7 @@ export type GraphOptions = {
   includeOptional?: boolean
   includePeer?: boolean
   offline?: boolean
+  verifyIntegrity?: 'shallow' | 'deep' | false
 }
 
 type QueueEntry = {
@@ -89,6 +90,8 @@ function getNodeById(
   return createPseudoNode(name, version)
 }
 
+import { verifyLockfileIntegrity } from './integrity-verifier.js'
+
 export async function validateDependencyGraph(options: GraphOptions): Promise<GraphValidationResult> {
   const workspace = options.recursive ? discoverWorkspaces(options.cwd) : {
     rootDir: options.cwd,
@@ -118,6 +121,10 @@ export async function validateDependencyGraph(options: GraphOptions): Promise<Gr
   const parsedGraph = lockfile ? parseLockfile(lockfile) : null
   const graph: DependencyGraph = parsedGraph ?? { nodes: new Map(), roots: [] }
 
+  if (options.verifyIntegrity !== false) {
+    await verifyLockfileIntegrity(graph, lockfile?.type, options.offline, options.verifyIntegrity === 'deep')
+  }
+
   const roots = appendRootNodes(graph, rootDeps)
   const queue: QueueEntry[] = roots.map(id => ({ id, depth: 0 }))
   const visited = new Set<string>()
@@ -139,6 +146,22 @@ export async function validateDependencyGraph(options: GraphOptions): Promise<Gr
 
     const spec = node.version ? `${node.name}@${node.version}` : node.name
     const result = await limit(() => validatePackage(spec, { offline: options.offline }))
+
+    // Git Mutable Reference Block
+    const gitUrl = (node.resolved && /^(?:git\+|github:|git:\/\/|https:\/\/github\.com)/.test(node.resolved)) ? node.resolved : 
+                   (node.version && /^(?:git\+|github:|git:\/\/|https:\/\/github\.com)/.test(node.version)) ? node.version : null
+    
+    if (gitUrl) {
+      const hashMatch = gitUrl.match(/#([a-fA-F0-9]{40})$/)
+      if (hashMatch) {
+        result.warnings.push({ name: 'git_mutability', passed: false, message: 'Immutable git dependency' })
+        if (result.score > 74) result.score = 74
+      } else {
+        result.hardBlocked = true
+        result.raw.git_mutability = { name: 'git_mutability', passed: false, message: 'Mutable git dependency blocked', hardFail: true }
+      }
+    }
+
     results.push(result)
 
     if (result.hardBlocked) blocked += 1

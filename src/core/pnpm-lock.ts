@@ -30,10 +30,27 @@ function toDependencyNode(
       if (typeof range === 'string') deps.set(dep, range)
     }
   }
+  
+  let realName = name
+  let realVersion = version
+  let alias: string | undefined = undefined
+  
+  // pnpm lockfile stores the alias in the version or resolution sometimes
+  const resolution = data?.resolution?.tarball || data?.resolution?.integrity || ''
+  const id = data?.id || ''
+  
+  // Actually, pnpm lockfile packages key is already the real name (e.g. /lodash/4.17.21)
+  // But if there's an alias, pnpm uses "name" field inside the object to denote real name.
+  if (data?.name && data.name !== name) {
+    alias = name
+    realName = data.name
+    realVersion = data.version || version
+  }
 
   return {
-    name,
-    version,
+    name: realName,
+    version: realVersion,
+    alias,
     dependencies: deps,
     integrity: data?.resolution?.integrity,
     resolved: data?.resolution?.tarball,

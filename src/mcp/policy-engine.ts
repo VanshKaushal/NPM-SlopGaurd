@@ -9,6 +9,7 @@ import { ValidationResult, GraphValidationResult } from '../types.js'
 
 export type PolicyEngineInput = {
   pkg: string
+  alias?: string
   result: ValidationResult
   policy: PolicyConfig
   allowlist: { allow: string[] }
@@ -26,8 +27,16 @@ function rankOverrideAction(action: PolicyOverride['action']) {
 
 export function evaluatePolicy(input: PolicyEngineInput): PolicyDecision {
   const confidence = computeConfidence(input.result)
-  const allowlisted = matchAllowlist(input.pkg, input.allowlist)
-  const blocklisted = matchBlocklist(input.pkg, input.blocklist)
+  const allowlisted = matchAllowlist(input.pkg, input.allowlist, input.policy.allowSubstringMatching)
+  
+  let blocklisted = matchBlocklist(input.pkg, input.blocklist, input.policy.allowSubstringMatching)
+  if (!blocklisted && input.alias) {
+    blocklisted = matchBlocklist(input.alias, input.blocklist, input.policy.allowSubstringMatching)
+  }
+  
+  if (blocklisted && input.alias && input.alias !== input.pkg) {
+    console.error(`Package ${input.alias} resolves to blocked package ${input.pkg}@${input.result.version || 'unknown'}`)
+  }
 
   const baseDecision = decidePolicy({
     pkg: input.pkg,

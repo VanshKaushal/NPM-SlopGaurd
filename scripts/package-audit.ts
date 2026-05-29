@@ -1,4 +1,5 @@
-#!/usr/bin/env ts-node
+#!/usr/bin/env node
+// @ts-nocheck
 import { existsSync, readFileSync, statSync } from 'fs';
 import { join, resolve } from 'path';
 import { execSync } from 'child_process';

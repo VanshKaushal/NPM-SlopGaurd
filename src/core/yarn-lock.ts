@@ -1,117 +1,146 @@
 import fs from 'fs'
+import path from 'path'
+import chalk from 'chalk'
+import pkg from '@yarnpkg/lockfile'
+const parseSyml = pkg.parse || (pkg as any).default?.parse
+// import { parse as parseSyml } from '@yarnpkg/lockfile'
+export type LockFileEntry = any
+import { parse as parseYaml } from 'yaml'
 import { DependencyGraph, DependencyNode } from '../types.js'
 
 function nodeKey(name: string, version: string) {
   return `${name}@${version}`
 }
 
-type YarnEntry = {
-  name: string
-  version: string
-  resolved?: string
-  integrity?: string
-  dependencies: Map<string, string>
-}
-
-function parseHeaderNames(line: string) {
-  const cleaned = line.replace(/:$/, '')
-  return cleaned.split(',').map(part => part.trim().replace(/^"|"$/g, ''))
-}
-
-function parseYarnLockContent(content: string): YarnEntry[] {
-  const entries: YarnEntry[] = []
-  const lines = content.split(/\r?\n/)
-
-  let i = 0
-  while (i < lines.length) {
-    let line = lines[i]
-    if (!line || line.trim() === '') {
-      i += 1
-      continue
-    }
-
-    if (!line.includes(':')) {
-      i += 1
-      continue
-    }
-
-    const headerNames = parseHeaderNames(line)
-    i += 1
-
-    const entry: YarnEntry = {
-      name: '',
-      version: '',
-      dependencies: new Map()
-    }
-
-    while (i < lines.length) {
-      line = lines[i]
-      if (!line || line.trim() === '') {
-        i += 1
-        break
-      }
-      if (!line.startsWith('  ')) break
-
-      const trimmed = line.trim()
-      if (trimmed.startsWith('version ')) {
-        entry.version = trimmed.slice('version '.length).replace(/^"|"$/g, '')
-      } else if (trimmed.startsWith('resolved ')) {
-        entry.resolved = trimmed.slice('resolved '.length).replace(/^"|"$/g, '')
-      } else if (trimmed.startsWith('integrity ')) {
-        entry.integrity = trimmed.slice('integrity '.length).replace(/^"|"$/g, '')
-      } else if (trimmed.startsWith('dependencies:')) {
-        i += 1
-        while (i < lines.length) {
-          const depLine = lines[i]
-          if (!depLine.startsWith('    ')) break
-          const depTrimmed = depLine.trim()
-          const space = depTrimmed.indexOf(' ')
-          if (space > 0) {
-            const depName = depTrimmed.slice(0, space)
-            const depRange = depTrimmed.slice(space + 1).replace(/^"|"$/g, '')
-            entry.dependencies.set(depName, depRange)
-          }
-          i += 1
-        }
-        continue
-      }
-      i += 1
-    }
-
-    const name = pickPrimaryName(headerNames)
-    if (name && entry.version) {
-      entry.name = name
-      entries.push(entry)
-    }
+function extractNameVersion(key: string) {
+  const at = key.lastIndexOf('@')
+  if (at > 0) {
+    return { name: key.slice(0, at), requested: key.slice(at + 1) }
   }
-
-  return entries
-}
-
-function pickPrimaryName(headers: string[]) {
-  if (headers.length === 0) return null
-  const first = headers[0]
-  const at = first.lastIndexOf('@')
-  if (first.startsWith('@')) {
-    return at > 0 ? first.slice(0, at) : null
-  }
-  return at > 0 ? first.slice(0, at) : first
+  return { name: key, requested: '' }
 }
 
 export function parseYarnLock(filePath: string): DependencyGraph {
   const raw = fs.readFileSync(filePath, 'utf8')
   const nodes = new Map<string, DependencyNode>()
-
-  for (const entry of parseYarnLockContent(raw)) {
-    const node: DependencyNode = {
-      name: entry.name,
-      version: entry.version,
-      dependencies: entry.dependencies,
-      integrity: entry.integrity,
-      resolved: entry.resolved
-    }
-    nodes.set(nodeKey(node.name, node.version), node)
+  const roots: string[] = []
+  
+  if (raw.trim() === '') {
+    throw new Error('Abort: Lockfile is empty')
   }
 
-  return { nodes, roots: [] }
+  // Detect PnP Mode
+  const rootDir = path.dirname(filePath)
+  if (fs.existsSync(path.join(rootDir, '.pnp.cjs')) || fs.existsSync(path.join(rootDir, '.pnp.loader.mjs'))) {
+    console.warn(chalk.yellow("Yarn PnP detected. Dependency graph may be incomplete. Full PnP support is in progress."))
+  }
+
+  let isBerry = false
+  let parsed: any = null
+  
+  try {
+    parsed = parseYaml(raw)
+    if (parsed && parsed.__metadata && parsed.__metadata.cacheKey !== undefined) {
+      isBerry = true
+    }
+  } catch (e) {
+    // not valid yaml, definitely classic
+  }
+
+  if (isBerry) {
+    // Path B (Yarn Berry)
+    for (const [pkgKey, rawEntry] of Object.entries(parsed)) {
+      if (pkgKey === '__metadata') continue
+      
+      const entry = rawEntry as LockFileEntry
+      
+      const keys = pkgKey.split(',').map(k => k.trim())
+      
+      for (const key of keys) {
+        let name = ''
+        const firstAt = key.indexOf('@', 1)
+        if (firstAt > 0) {
+           name = key.slice(0, firstAt)
+        } else {
+           name = key
+        }
+        
+        let realName = name
+        let realVersion = entry.version
+        let alias: string | undefined = undefined
+        
+        // npm:alias resolution in Berry
+        const resolution = entry.resolution || ''
+        if (resolution.includes('npm:')) {
+           const match = resolution.match(/npm:([^@]+)@/)
+           if (match) {
+             alias = name
+             realName = match[1]
+           }
+        }
+        
+        const node: DependencyNode = {
+          name: realName,
+          version: realVersion,
+          alias,
+          dependencies: new Map(Object.entries(entry.dependencies || {}) as [string, string][]),
+          integrity: entry.checksum,
+          resolved: resolution
+        }
+        
+        nodes.set(nodeKey(node.name, node.version), node)
+      }
+    }
+  } else {
+    // Path A (Yarn Classic)
+    const result = parseSyml(raw)
+    if (result.type !== 'success') {
+      throw new Error('Abort: Failed to parse Yarn classic lockfile')
+    }
+    const data = result.object
+    for (const [pkgKey, rawEntry] of Object.entries(data)) {
+      const entry = rawEntry as LockFileEntry
+      const keys = pkgKey.split(',').map(k => k.trim())
+      for (const key of keys) {
+        let name = ''
+        const firstAt = key.indexOf('@', 1)
+        if (firstAt > 0) {
+           name = key.slice(0, firstAt)
+        } else {
+           name = key
+        }
+        
+        let realName = name
+        let realVersion = entry.version
+        let alias: string | undefined = undefined
+        
+        // npm:alias resolution in Classic
+        if (entry.resolved && entry.resolved.includes('npm:')) {
+           // Not standard for v1, but fulfilling the prompt
+           const match = entry.resolved.match(/npm:([^@]+)@/)
+           if (match) {
+             alias = name
+             realName = match[1]
+           }
+        }
+
+        const node: DependencyNode = {
+          name: realName,
+          version: realVersion,
+          alias,
+          dependencies: new Map(Object.entries(entry.dependencies || {}) as [string, string][]),
+          integrity: entry.integrity,
+          resolved: entry.resolved
+        }
+        
+        nodes.set(nodeKey(node.name, node.version), node)
+      }
+    }
+  }
+
+  if (nodes.size === 0) {
+    throw new Error('Abort: Zero packages resolved from non-empty lockfile')
+  }
+
+  return { nodes, roots }
 }

@@ -1,601 +1,144 @@
-# Nuclear Surgical Prompt — SlopGuard Full-System Destructive Validation & Failure Discovery Phase
+You are fixing exactly 2 failing tests in SlopGuard. 
+Build is clean (0 errors). 24/26 tests pass. Fix only these 2.
+Do not touch any passing tests. Do not change business logic.
 
-## ROLE
+════════════════════════════════════════
+FAILURE 1 — chaos-monorepo.test.js
+════════════════════════════════════════
 
-You are a principal-level:
+ERROR:
+  AssertionError: assert.ok(/CHAOS MONOREPO VALIDATION/.test(output))
+  actual: false (string 'CHAOS MONOREPO VALIDATION' not found in output)
 
-* infrastructure reliability engineer
-* OSS hardening specialist
-* deterministic systems auditor
-* supply-chain security engineer
-* chaos-testing architect
-* release engineering auditor
-* CI/CD failure-analysis specialist
-* monorepo validation engineer
+FILE: tests/chaos-monorepo.test.ts (line 17)
 
-You are conducting a:
+STEP 1 — Open tests/chaos-monorepo.test.ts and show me:
+  - How output is captured (what command is spawned)
+  - What the test expects to find in output
+  - What the actual output contains (add a console.log(output) 
+    temporarily to see what IS being printed)
 
-# full-system destructive validation audit
+STEP 2 — Open the script/module that chaos-monorepo.test.ts invokes.
+  Find where "CHAOS MONOREPO VALIDATION" is supposed to be printed.
+  Check if it is:
+    (a) Inside an if-block that is not being reached
+    (b) Printed to stderr instead of stdout (test may only capture stdout)
+    (c) The string was renamed/removed during the recent refactor
+    (d) The script exits before reaching the print statement
 
-for **SlopGuard**.
+STEP 3 — Apply the minimal fix:
 
-The goal is NOT feature development.
+  CASE A (if-block not reached):
+    Trace why the condition fails. Fix the condition or the 
+    test fixture that feeds it. Do not remove the assertion.
 
-The goal is:
+  CASE B (stderr vs stdout):
+    In the test, change the spawn options to capture both:
+      const result = spawnSync(cmd, args, { 
+        encoding: 'utf8',
+        stdio: 'pipe'  
+      })
+      const output = (result.stdout || '') + (result.stderr || '')
+    This is a 2-line fix in the test file only.
 
-# discovering every hidden failure point
+  CASE C (string renamed):
+    Find the current string being printed by the chaos script.
+    Update the regex in the test to match the actual current string.
+    Example: /CHAOS MONOREPO VALIDATION/.test(output)
+    becomes: /chaos monorepo/i.test(output)  ← adjust to actual
 
-# detecting operational breakage
+  CASE D (early exit):
+    Find the exit point. Fix the script to reach the print statement
+    OR fix the test to assert on what the script actually outputs.
 
-# exposing architectural weaknesses
+════════════════════════════════════════
+FAILURE 2 — smoke-test.test.js  
+════════════════════════════════════════
 
-# surfacing nondeterminism
+ERROR:
+  Error: spawnSync cmd.exe ENOBUFS
+  cause: 'npm pack --json' output exceeds 1MB spawnSync buffer limit
+  result: exit code 1 → test asserts exit code 0 → FAIL
 
-# revealing edge-case instability
+FILE: src/scripts/smoke-test.ts (line ~70, function buildAndPack)
+FILE: tests/smoke-test.test.ts (line 22)
 
-# identifying runtime regressions
+ROOT CAUSE:
+  execSync('npm pack --json') uses default maxBuffer of 1MB.
+  SlopGuard's packed tarball metadata exceeds 1MB.
+  spawnSync kills the process with SIGTERM → ENOBUFS.
 
-# exposing hidden CI fragility
+FIX — Open src/scripts/smoke-test.ts, find the buildAndPack function.
+Locate this line (approximately line 70):
+  execSync('npm pack --json', ...)
+  OR
+  spawnSync(..., ['pack', '--json'], ...)
 
-# detecting broken dependency paths
+Apply ONE of these fixes (choose the simplest that applies):
 
-# finding release inconsistencies
+  FIX OPTION A — Increase maxBuffer (simplest fix):
+    execSync('npm pack --json', { 
+      maxBuffer: 1024 * 1024 * 64,  // 64MB — well above any real pack output
+      encoding: 'utf8'
+    })
 
-# locating scalability bottlenecks
+  FIX OPTION B — If using spawnSync directly:
+    spawnSync('npm', ['pack', '--json'], {
+      maxBuffer: 1024 * 1024 * 64,
+      encoding: 'utf8',
+      shell: true
+    })
 
-This is:
+  FIX OPTION C — If you don't actually need the JSON output:
+    Replace 'npm pack --json' with 'npm pack'
+    This produces human-readable output that is much smaller.
+    Update any downstream parsing of the JSON output accordingly.
 
-# infrastructure stress verification
+  FIX OPTION D — If the pack output is legitimately huge 
+  (many files being packed accidentally):
+    Run 'npm pack --dry-run' locally and check what files are included.
+    If node_modules, dist/tests, or fixture files are being packed,
+    add them to .npmignore:
 
-NOT:
+      dist/tests/
+      tests/
+      scripts/
+      .github/
+      node_modules/
 
-# product expansion
+    Then re-run — the output will shrink dramatically.
+    This is the CORRECT fix if the pack is bloated.
+    Combine with FIX OPTION A as a safety net.
 
----
+RECOMMENDED: Apply OPTION D first (check .npmignore), then OPTION A 
+as a safety net. Both together = permanently solved.
 
-# PRIMARY OBJECTIVE
+════════════════════════════════════════
+VERIFICATION
+════════════════════════════════════════
 
-Perform a complete destructive systems audit of SlopGuard to identify:
+After both fixes:
 
-* breaking points
-* runtime crashes
-* dependency failures
-* CI instability
-* graph traversal bugs
-* monorepo edge-case failures
-* reproducibility drift
-* nondeterministic behavior
-* invalid exports
-* hidden packaging defects
-* workspace traversal inconsistencies
-* race conditions
-* stale dependency assumptions
-* policy enforcement inconsistencies
-* memory leaks
-* recursion instability
-* install enforcement failures
-* artifact verification mismatches
-* provenance inconsistencies
-* MCP startup failures
-* lockfile parser weaknesses
-* malformed package handling
-* performance collapse points
+1. npm run build     → must be 0 errors
+2. npm test          → must show:
+     ℹ pass 26
+     ℹ fail 0
 
-Goal:
+If chaos-monorepo still fails after your fix, paste the 
+actual output content (from the console.log you added in STEP 1).
+That string is the ground truth — the test must match it.
 
-# expose ALL hidden operational weaknesses before production release
+If smoke-test still fails after maxBuffer increase, run:
+  npm pack --dry-run 2>&1 | head -50
+and paste the output. We need to see what is being packed.
 
----
-
-# CRITICAL EXECUTION RULES
+════════════════════════════════════════
+CONSTRAINTS
+════════════════════════════════════════
 
 DO NOT:
-
-* add features
-* redesign architecture
-* rewrite systems
-* simplify tests
-* suppress failures
-* ignore warnings
-* bypass failing logic
-* hide flaky behavior
-
-DO:
-
-* aggressively stress the system
-* intentionally break assumptions
-* maximize edge-case coverage
-* force invalid states
-* test malformed inputs
-* test corrupted graphs
-* test pathological monorepos
-* test deterministic guarantees
-
-This phase is:
-
-# adversarial infrastructure validation
-
----
-
-# VALIDATION STRATEGY
-
-# CRITICAL
-
-Treat SlopGuard as:
-
-# production infrastructure under hostile conditions
-
-The audit must:
-
-* intentionally push limits
-* intentionally create failure conditions
-* intentionally inject malformed states
-* intentionally stress recursion depth
-* intentionally test graph explosions
-* intentionally attack deterministic guarantees
-
----
-
-# PHASE 1 — FULL REPOSITORY STRUCTURAL AUDIT
-
-# CRITICAL
-
-Audit ALL:
-
-* files
-* folders
-* exports
-* entrypoints
-* scripts
-* workflows
-* configs
-* package surfaces
-
-Detect:
-
-* orphaned files
-* unused scripts
-* broken imports
-* circular dependencies
-* invalid exports
-* stale configs
-* duplicate implementations
-* dead code
-* shadowed files
-* missing build outputs
-* unstable entrypoints
-* incorrect package.json fields
-
----
-
-# REQUIRED CHECKS
-
-Validate:
-
-* package.json correctness
-* export map consistency
-* bin entry correctness
-* tsconfig correctness
-* workflow references
-* script references
-* import resolution
-* ESM compatibility
-* Node 20+ compatibility
-
----
-
-# REQUIRED FAILURE REPORTING
-
-Need deterministic reporting like:
-
-```txt id="jlwmvv"
-STRUCTURAL FAILURE DETECTED
-
-Broken export:
-src/core/resilience.ts
-
-Duplicate implementation:
-request-manager.ts
-
-Unused workflow:
-reproducibility.yml
-
-Invalid bin mapping:
-package.json -> slopguard
-```
-
----
-
-# PHASE 2 — FULL CLI DESTRUCTIVE TESTING
-
-# CRITICAL
-
-Aggressively stress:
-
-```bash id="jlwmyb"
-slopguard check
-slopguard scan
-slopguard install
-```
-
----
-
-# TEST CASES
-
-Must test:
-
-* malformed package names
-* invalid semver
-* missing lockfiles
-* corrupted package.json
-* cyclic workspace references
-* huge dependency graphs
-* nonexistent registries
-* offline mode
-* malformed overrides
-* corrupted hotlists
-* invalid policies
-* malformed configs
-* invalid MCP requests
-* broken workspaces
-* duplicate package names
-
----
-
-# REQUIRED FAILURE DETECTION
-
-Detect:
-
-* crashes
-* hangs
-* infinite recursion
-* memory explosions
-* nondeterministic outputs
-* race conditions
-* timeout failures
-* inconsistent policy decisions
-
----
-
-# PHASE 3 — MONOREPO CHAOS TESTING
-
-# CRITICAL
-
-Generate pathological workspace structures.
-
-Need stress tests for:
-
-* deeply nested pnpm workspaces
-* Turborepo-like graphs
-* Nx-like graphs
-* cyclic workspace references
-* duplicated workspace names
-* invalid graph edges
-* recursive dependencies
-* massive lockfiles
-* corrupted lockfiles
-
----
-
-# REQUIRED METRICS
-
-Measure:
-
-* memory usage
-* traversal time
-* recursion depth
-* graph consistency
-* dedupe correctness
-* traversal determinism
-
----
-
-# REQUIRED FAILURE OUTPUT
-
-Need deterministic reports like:
-
-```txt id="jlwmwk"
-MONOREPO FAILURE DETECTED
-
-Workspace cycle:
-packages/a -> packages/b -> packages/a
-
-Traversal instability:
-graph.ts line 183
-
-Memory spike:
-2.3GB peak usage
-
-Lockfile parser failure:
-pnpm-lock.ts
-```
-
----
-
-# PHASE 4 — REPRODUCIBILITY ATTACK TESTING
-
-# CRITICAL
-
-Attempt to BREAK deterministic guarantees.
-
-Must test:
-
-* randomized timestamps
-* altered environments
-* reordered files
-* modified lockfiles
-* altered tarball ordering
-* unstable package metadata
-* inconsistent path separators
-* OS-level differences
-
----
-
-# REQUIRED DETECTIONS
-
-Detect:
-
-* hash drift
-* tarball drift
-* inconsistent builds
-* unstable digests
-* nondeterministic packaging
-
----
-
-# PHASE 5 — PACKAGE AUDIT ATTACK TESTING
-
-# CRITICAL
-
-Attempt to bypass package-audit.ts.
-
-Inject:
-
-* hidden secrets
-* large binaries
-* disguised artifacts
-* malformed export maps
-* hidden .env files
-* invalid tarball structures
-* oversized source maps
-* nested temp artifacts
-
----
-
-# REQUIRED VALIDATION
-
-Ensure audit engine catches:
-
-* ALL blocked artifacts
-* ALL export inconsistencies
-* ALL secret leaks
-* ALL oversized assets
-
----
-
-# PHASE 6 — PROVENANCE + INTEGRITY ATTACK TESTING
-
-# CRITICAL
-
-Attempt to break integrity verification.
-
-Inject:
-
-* invalid hashes
-* altered provenance statements
-* mismatched tarballs
-* corrupted attestations
-* missing provenance
-* altered subject digests
-
----
-
-# REQUIRED VALIDATION
-
-Ensure integrity verification:
-
-* fails deterministically
-* reports exact failure source
-* never silently passes
-* never produces false positives
-
----
-
-# PHASE 7 — MCP + POLICY CHAOS TESTING
-
-# CRITICAL
-
-Stress:
-
-* malformed MCP requests
-* invalid policy schemas
-* corrupted overrides
-* invalid trust levels
-* conflicting policies
-* malformed workspace rules
-
----
-
-# REQUIRED VALIDATION
-
-Detect:
-
-* inconsistent decisions
-* policy nondeterminism
-* silent overrides
-* unstable enforcement
-
----
-
-# PHASE 8 — CI/CD DETERMINISM AUDIT
-
-# CRITICAL
-
-Audit ALL workflows for:
-
-* floating versions
-* nondeterministic caches
-* unstable installs
-* race conditions
-* environment inconsistencies
-* missing gates
-* unpinned actions
-
----
-
-# REQUIRED OUTPUT
-
-Need reports like:
-
-```txt id="jlwmzd"
-CI DETERMINISM FAILURE
-
-Floating action:
-actions/setup-node@v4
-
-Nondeterministic cache key:
-release.yml line 48
-
-Missing release gate:
-integrity verification
-```
-
----
-
-# PHASE 9 — PERFORMANCE COLLAPSE TESTING
-
-# CRITICAL
-
-Stress:
-
-* huge dependency graphs
-* massive lockfiles
-* recursive installs
-* concurrent validations
-* high parallelism
-* slow registries
-* network degradation
-
----
-
-# REQUIRED METRICS
-
-Collect:
-
-* latency
-* memory usage
-* concurrency stability
-* retry behavior
-* timeout behavior
-* circuit-breaker correctness
-
----
-
-# REQUIRED FAILURE CLASSIFICATION
-
-Classify ALL failures as:
-
-* CRITICAL
-* HIGH
-* MEDIUM
-* LOW
-
-Include:
-
-* exact file
-* exact function
-* exact line
-* reproduction steps
-* root-cause analysis
-* deterministic fix recommendation
-
----
-
-# REQUIRED FINAL OUTPUT
-
-Generate a final audit report like:
-
-```txt id="jlwn02"
-SLOPGUARD INFRASTRUCTURE AUDIT
-
-Structural Integrity: PASS
-CLI Stability: PASS
-Workspace Traversal: PASS
-Reproducibility: PASS
-Package Audit: PASS
-Integrity Verification: PASS
-Policy Determinism: PASS
-CI Determinism: FAIL
-Monorepo Stability: WARNING
-
-Critical Failures: 1
-High Severity: 2
-Medium Severity: 5
-Low Severity: 11
-
-Top Risks:
-- Unpinned workflow action
-- Recursive graph memory spike
-- Tarball ordering nondeterminism
-```
-
----
-
-# MOST IMPORTANT ENGINEERING PRIORITIES
-
-Priority order:
-
-1. Deterministic behavior
-2. Runtime stability
-3. Release integrity
-4. Provenance correctness
-5. Monorepo resilience
-6. CI reproducibility
-7. Operational predictability
-
----
-
-# FINAL EXECUTION DIRECTIVE
-
-Conduct a full adversarial infrastructure audit of SlopGuard designed to expose:
-
-* every hidden bug
-* every breaking point
-* every operational weakness
-* every nondeterministic path
-* every release inconsistency
-* every CI fragility
-* every graph traversal edge case
-* every runtime instability
-
-The system must be stress-tested as if it were:
-
-# mission-critical production infrastructure
-
-Do NOT optimize for:
-
-* passing tests
-* clean logs
-* optimistic assumptions
-
-Optimize ONLY for:
-
-# truth
-
-# failure discovery
-
-# operational realism
-
-# infrastructure survivability
-
-The final result should provide:
-
-* exact weak points
-* exact break locations
-* exact reproduction steps
-* exact root causes
-* exact stabilization recommendations
-
-so the project can be hardened into:
-
-# ecosystem-grade trusted infrastructure.
+  - Delete either failing test
+  - Change the assertion to always pass
+  - Skip the test with .skip()
+  - Touch any of the 24 passing tests
+  - Change any validation or scoring logic

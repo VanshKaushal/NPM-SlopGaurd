@@ -1,0 +1,16 @@
+{
+  "name": "paranoid-policy",
+  "strictness": "paranoid",
+  "requireProvenance": true,
+  "allowPreReleases": false,
+  "allowUnsigned": false,
+  "allowedRegistries": [],
+  "bannedLicenses": ["GPL-2.0", "GPL-3.0", "AGPL-3.0"],
+  "maxGraphSize": 1000,
+  "auditRequirements": {
+    "critical": "fail",
+    "high": "fail",
+    "moderate": "fail",
+    "low": "warn"
+  }
+}

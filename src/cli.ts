@@ -10,6 +10,8 @@ import { explainResult } from './core/explainability.js'
 import { parseInstallArgs } from './install/args.js'
 import { runProxyInstall } from './install/proxy-install.js'
 
+import { reportJson, reportSarif } from './reporters.js'
+
 function printResult(pkg: string, res: Awaited<ReturnType<typeof validatePackage>>) {
   console.log(chalk.bold(pkg))
   for (const sig of Object.values(res.raw)) {
@@ -26,9 +28,17 @@ function printResult(pkg: string, res: Awaited<ReturnType<typeof validatePackage
 
 function parseFlags(args: string[]) {
   const flags = new Set(args.filter(a => a.startsWith('--')))
+  let verifyIntegrity: 'shallow' | 'deep' | false | undefined;
+  if (args.includes('--verify-integrity=deep')) verifyIntegrity = 'deep';
+  else if (args.includes('--verify-integrity=shallow')) verifyIntegrity = 'shallow';
+  else if (args.includes('--verify-integrity=false')) verifyIntegrity = false;
+
   return {
     allow: flags.has('--allow'),
-    ignoreWarnings: flags.has('--ignore-warnings')
+    ignoreWarnings: flags.has('--ignore-warnings'),
+    verifyIntegrity,
+    json: flags.has('--json'),
+    sarif: flags.has('--sarif')
   }
 }
 
@@ -57,10 +67,14 @@ async function main() {
 
   if (cmd === 'check' && args[1]) {
     const pkg = args[1]
-    console.log(chalk.blue(`Validating ${pkg}...`))
+    if (!flags.json && !flags.sarif) console.log(chalk.blue(`Validating ${pkg}...`))
     const cfg = mergeConfig({ ...baseConfig, allowlist: flags.allow ? [pkg] : baseConfig.allowlist })
     const res = await validatePackage(pkg, cfg)
-    printResult(pkg, res)
+    
+    if (flags.json) reportJson(res)
+    else if (flags.sarif) reportSarif(res)
+    else printResult(pkg, res)
+    
     if (res.hardBlocked) process.exit(1)
     if (!flags.ignoreWarnings && res.score < 75) process.exit(2)
     process.exit(0)
@@ -70,20 +84,30 @@ async function main() {
     if (args.includes('--recursive')) {
       const result = await validateDependencyGraph({
         cwd: process.cwd(),
-        recursive: false
+        recursive: false,
+        verifyIntegrity: flags.verifyIntegrity
       })
-      printGraphResult(result)
+      
+      if (flags.json) reportJson(result)
+      else if (flags.sarif) reportSarif(result)
+      else printGraphResult(result)
+      
       process.exit(result.blocked > 0 ? 1 : result.warnings > 0 ? 2 : 0)
     } else {
       const packages = await scanPackageJson(process.cwd())
       const limit = createLimiter(10)
       let exitCode = 0
+      const results = []
       for (const pkg of packages) {
         const res = await limit(() => validatePackage(pkg, baseConfig))
-        printResult(pkg, res)
+        results.push(res)
         if (res.hardBlocked) exitCode = 1
         else if (res.score < 75) exitCode = Math.max(exitCode, 2)
       }
+      if (flags.json) reportJson(results)
+      else if (flags.sarif) reportSarif({ results } as any)
+      else results.forEach(r => printResult(r.pkg, r))
+      
       process.exit(exitCode)
     }
   }
@@ -91,9 +115,12 @@ async function main() {
   if (cmd === 'scan-workspace') {
     const result = await validateDependencyGraph({
       cwd: process.cwd(),
-      recursive: true
+      recursive: true,
+      verifyIntegrity: flags.verifyIntegrity
     })
-    printGraphResult(result)
+    if (flags.json) reportJson(result)
+    else if (flags.sarif) reportSarif(result)
+    else printGraphResult(result)
     process.exit(result.blocked > 0 ? 1 : result.warnings > 0 ? 2 : 0)
   }
 

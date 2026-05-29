@@ -11,6 +11,7 @@ export type PolicyConfig = {
   maxDependencyDepth: number
   blockNewPackages: boolean
   minimumConfidence: ConfidenceLevel
+  allowSubstringMatching: boolean
 }
 
 export type PolicyPreset = {
@@ -25,7 +26,8 @@ export const DEFAULT_POLICY: PolicyConfig = {
   requireProvenance: false,
   maxDependencyDepth: 25,
   blockNewPackages: false,
-  minimumConfidence: 'medium'
+  minimumConfidence: 'medium',
+  allowSubstringMatching: false
 }
 
 export function mergePolicy(partial?: Partial<PolicyConfig>): PolicyConfig {
@@ -37,6 +39,7 @@ export function mergePolicy(partial?: Partial<PolicyConfig>): PolicyConfig {
     requireProvenance: partial.requireProvenance ?? DEFAULT_POLICY.requireProvenance,
     maxDependencyDepth: partial.maxDependencyDepth ?? DEFAULT_POLICY.maxDependencyDepth,
     blockNewPackages: partial.blockNewPackages ?? DEFAULT_POLICY.blockNewPackages,
-    minimumConfidence: partial.minimumConfidence ?? DEFAULT_POLICY.minimumConfidence
+    minimumConfidence: partial.minimumConfidence ?? DEFAULT_POLICY.minimumConfidence,
+    allowSubstringMatching: partial.allowSubstringMatching ?? DEFAULT_POLICY.allowSubstringMatching
   }
 }
