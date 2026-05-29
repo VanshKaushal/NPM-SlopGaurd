@@ -13,6 +13,7 @@ import { PackageManager } from './args.js'
 import { loadPolicyBundle } from '../mcp/policy-loader.js'
 import { enforcePolicy } from '../mcp/enforcement.js'
 import { getAgentContext } from '../mcp/agent-context.js'
+import { OverrideAction } from '../core/overrides.js'
 
 export type InstallFlowOptions = {
   pkg: string
@@ -94,7 +95,7 @@ export async function runInstallFlow(options: InstallFlowOptions): Promise<numbe
 
   const result = await validatePackage(options.pkg, config)
   const overrides = options.allow
-    ? [...policyBundle.overrides, { name: spec.name, action: 'allow', reason: 'cli --allow' }]
+    ? [...policyBundle.overrides, { name: spec.name, action: 'allow' as OverrideAction, reason: 'cli --allow' }]
     : policyBundle.overrides
 
   printResult(options.pkg, result)
