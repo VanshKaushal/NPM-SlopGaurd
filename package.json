@@ -11,7 +11,7 @@
     "build": "tsc -p .",
     "start": "node ./dist/src/cli.js",
     "dev": "npm run build && node ./dist/src/cli.js",
-    "test": "node ./scripts/run-tests.mjs",
+    "test": "npm run build && node --test \"dist/tests/**/*.test.js\"",
     "hotlist:validate": "node ./scripts/validate-hotlist.mjs"
   },
   "engines": {
