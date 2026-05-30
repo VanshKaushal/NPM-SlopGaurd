@@ -155,7 +155,7 @@ export async function validateDependencyGraph(options: GraphOptions): Promise<Gr
       const hashMatch = gitUrl.match(/#([a-fA-F0-9]{40})$/)
       if (hashMatch) {
         result.warnings.push({ name: 'git_mutability', passed: false, message: 'Immutable git dependency' })
-        if (result.score > 74) result.score = 74
+        if (result.score > 50) result.score = 50
       } else {
         result.hardBlocked = true
         result.raw.git_mutability = { name: 'git_mutability', passed: false, message: 'Mutable git dependency blocked', hardFail: true }

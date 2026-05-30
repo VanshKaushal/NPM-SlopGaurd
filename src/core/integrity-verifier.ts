@@ -53,15 +53,20 @@ export async function verifyLockfileIntegrity(
         console.warn(chalk.yellow(`Warning: Cannot verify integrity for ${node.name}@${node.version} in offline mode (UNVERIFIABLE)`))
       } else {
         let registryIntegrity = cache.get(`${node.name}@${node.version}`)
+        let registryResolved = cache.get(`${node.name}@${node.version}:resolved`)
         if (!cache.has(`${node.name}@${node.version}`)) {
           const meta = await getPackageMetadata(node.name)
           registryIntegrity = meta?.versions?.[node.version]?.dist?.integrity
+          registryResolved = meta?.versions?.[node.version]?.dist?.tarball
           cache.set(`${node.name}@${node.version}`, registryIntegrity)
+          cache.set(`${node.name}@${node.version}:resolved`, registryResolved)
         }
         
         if (registryIntegrity && node.integrity !== registryIntegrity) {
-          console.error(chalk.red(`CRITICAL: Lockfile integrity mismatch for ${node.name}@${node.version}. Possible lockfile poisoning attack.`))
-          process.exit(2)
+          throw new Error(`CRITICAL: Lockfile integrity mismatch for ${node.name}@${node.version}. Possible lockfile poisoning attack. Delete your lockfile and re-run npm install/yarn install to regenerate it, or manually investigate the dependency.`)
+        }
+        if (registryResolved && node.resolved && node.resolved !== registryResolved) {
+          throw new Error(`CRITICAL: Lockfile resolved URL mismatch for ${node.name}@${node.version}. Possible lockfile poisoning attack. Delete your lockfile and re-run npm install/yarn install to regenerate it, or manually investigate the dependency.`)
         }
       }
     }

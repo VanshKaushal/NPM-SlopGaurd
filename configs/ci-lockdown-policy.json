@@ -1,0 +1,15 @@
+{
+  "maxRiskScore": 40,
+  "blockHallucinatedPackages": true,
+  "allowInstallScripts": "block",
+  "requireProvenance": false,
+  "maxDependencyDepth": 25,
+  "blockNewPackages": false,
+  "minimumConfidence": "medium",
+  "allowSubstringMatching": false,
+  "allowMutableGitRefs": false,
+  "requireLockfile": true,
+  "blockOnCircuitOpen": true,
+  "offlineMode": false,
+  "frozenLockfile": true
+}

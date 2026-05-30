@@ -259,6 +259,9 @@ export async function validatePackage(
 
   let score = scoreSignals(raw)
   score -= circuitOpenPenalty
+  if (circuitOpenPenalty > 0 && score > 55) {
+    score = 55
+  }
   if (score < 0) score = 0
 
   return {

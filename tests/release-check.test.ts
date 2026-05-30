@@ -10,7 +10,7 @@ test('release-check validates tag version deterministically', () => {
       ...process.env,
       TS_NODE_FILES: 'true',
       TS_NODE_TRANSPILE_ONLY: 'true',
-      GITHUB_REF: 'refs/tags/v0.1.0'
+      GITHUB_REF: 'refs/tags/v0.1.0-alpha.1'
     }
   })
   if (res.error) throw res.error

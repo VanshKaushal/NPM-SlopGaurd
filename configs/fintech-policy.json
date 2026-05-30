@@ -1,0 +1,19 @@
+{
+  "maxRiskScore": 30,
+  "blockHallucinatedPackages": true,
+  "allowInstallScripts": "block",
+  "requireProvenance": true,
+  "maxDependencyDepth": 15,
+  "blockNewPackages": true,
+  "minimumConfidence": "high",
+  "allowSubstringMatching": true,
+  "allowMutableGitRefs": false,
+  "requireLockfile": true,
+  "allowedRegistries": ["https://registry.npmjs.org"],
+  "blockOnCircuitOpen": true,
+  "minPublisherAgeDays": 90,
+  "minVersionAgeDays": 7,
+  "blockUnverifiedIntegrity": true,
+  "requireSBOM": false,
+  "auditLogPath": ".slopguard/audit.log"
+}

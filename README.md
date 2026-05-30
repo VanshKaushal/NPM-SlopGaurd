@@ -2,66 +2,90 @@
 
 SlopGuard is a zero-infrastructure npm package validation firewall. It detects hallucinated, typosquatted, or otherwise high-risk packages and blocks or warns before install.
 
-**Requirements:** Node.js >= 20
-
-**Install & build**
-
-- Install dependencies:
+## Quick Start
 
 ```bash
-npm install
+npx @vanshkaushal/slopguard@alpha scan
 ```
 
-- Build TypeScript output:
+## What it does
 
-```bash
-npm run build
-```
+SlopGuard is a security firewall for npm packages. Before you install a dependency, SlopGuard checks if it is safe — screening for typosquatting, malicious install scripts, suspicious publishers, and supply-chain attacks.
 
-- Run in development (no build):
-
-```bash
-npm run dev
-```
-
-**Quick usage (CLI)**
+## Commands reference
 
 - Validate a single package:
-
 ```bash
-npx slopguard check react
+npx @vanshkaushal/slopguard@alpha check react
 ```
 
 - Validate a specific version:
-
 ```bash
-npx slopguard check react@18.2.0
+npx @vanshkaushal/slopguard@alpha check react@18.2.0
 ```
 
 - Scan the current folder's dependencies:
-
 ```bash
-npx slopguard scan
+npx @vanshkaushal/slopguard@alpha scan
 ```
 
 - Recursive workspace scan:
-
 ```bash
-npx slopguard scan --recursive
+npx @vanshkaushal/slopguard@alpha scan --recursive
 ```
 
 Commands supported: `check <pkg[@version]>`, `scan`, `scan-workspace`, `install <pkg[@version]>`.
 
 Flags:
+- `--output=json|sarif` — Output scan results in JSON or SARIF format
+- `--json` — Alias for `--output=json`
+- `--sarif` — Alias for `--output=sarif`
+- `--policy=<mode>` — Override the active policy mode (see Policy Modes below)
+- `--offline` — Run in offline mode (skip registry checks, 50% score penalty)
+- `--dry-run` — For install: validate without actually installing
+- `--allow` — Temporarily allow a package for this run
+- `--ignore-warnings` — Treat warnings as success (exit code 0)
+- `--verify-integrity=shallow|deep|false` — Control lockfile integrity verification
 
-- `--allow` — temporarily allow a package for this run
-- `--ignore-warnings` — treat warnings as success (exit code 0)
+## Policy Modes
 
-Exit codes:
+SlopGuard comes with several built-in policy packs to suit different environments:
+- `permissive`: Minimal blocking, warnings only (for experimentation)
+- `balanced`: Default. Balanced between strictness and usability
+- `strict`: Tighter controls, provenance recommended
+- `paranoid`: Maximum strictness. Blocks new packages and missing provenance
+- `enterprise-policy`: Regulated enterprise environments (requires lockfile, limits max risk, enforces strict age limits)
+- `fintech-policy`: Financial services (enterprise controls + deep integrity checks and substring blocking)
+- `ai-agent-policy`: AI/ML pipeline use (relaxed provenance, allows scoped AI ecosystem packages)
+- `ci-lockdown-policy`: Reproducible CI (frozen lockfiles, fails closed, blocks install scripts)
+
+## Exit codes
 
 - `0` = safe
-- `1` = hard-blocked (unsafe)
-- `2` = warnings only (non-fatal issues)
+- `1` = warnings only (non-fatal issues)
+- `2` = hard-blocked (unsafe)
+- `3` = internal error
+
+## Local Development (Install & build)
+
+**Requirements:** Node.js >= 18.0.0
+
+- Install dependencies:
+```bash
+npm install
+```
+
+- Build TypeScript output:
+```bash
+npm run build
+```
+
+- Run in development (no build):
+```bash
+npm run dev
+```
+
+
 
 **MCP server (Model Context Protocol)**
 

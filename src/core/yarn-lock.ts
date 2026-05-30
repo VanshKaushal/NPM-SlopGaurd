@@ -26,7 +26,7 @@ export function parseYarnLock(filePath: string): DependencyGraph {
   const roots: string[] = []
   
   if (raw.trim() === '') {
-    throw new Error('Abort: Lockfile is empty')
+    throw new Error(`Failed to parse yarn.lock: Lockfile is empty. Ensure you are running SlopGuard in a project with a valid, non-empty yarn.lock file.`)
   }
 
   // Detect PnP Mode
@@ -95,7 +95,7 @@ export function parseYarnLock(filePath: string): DependencyGraph {
     // Path A (Yarn Classic)
     const result = parseSyml(raw)
     if (result.type !== 'success') {
-      throw new Error('Abort: Failed to parse Yarn classic lockfile')
+      throw new Error(`Failed to parse yarn.lock: Invalid Yarn classic lockfile format. Ensure your yarn.lock is valid and not corrupted.`)
     }
     const data = result.object
     for (const [pkgKey, rawEntry] of Object.entries(data)) {
@@ -139,7 +139,7 @@ export function parseYarnLock(filePath: string): DependencyGraph {
   }
 
   if (nodes.size === 0) {
-    throw new Error('Abort: Zero packages resolved from non-empty lockfile')
+    throw new Error(`Failed to parse yarn.lock: Zero packages resolved. Check if the lockfile contains valid dependencies or needs to be regenerated.`)
   }
 
   return { nodes, roots }

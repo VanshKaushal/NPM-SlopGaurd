@@ -1,11 +1,8 @@
-dist/tests/
 tests/
-scripts/
-.github/
-node_modules
-tests/fixtures/
-*.tgz
+src/
 .benchmarks/
-datasets/
-docs/
-configs/
+.github/
+scripts/
+*.test.ts
+tsconfig.json
+.eslintrc*
