@@ -1,57 +1,68 @@
-# SlopGuard
+<div align="center">
+  
+# 🛡️ SlopGuard
 
-SlopGuard is a zero-infrastructure npm package validation firewall. It detects hallucinated, typosquatted, or otherwise high-risk packages and blocks or warns before install.
+**Zero-infrastructure npm package validation firewall.**
 
-## Quick Start
+[![npm version](https://img.shields.io/npm/v/@vanshkaushal/slopguard?color=blue&style=for-the-badge)](https://www.npmjs.com/package/@vanshkaushal/slopguard)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
+[![Node.js CI](https://img.shields.io/badge/Node.js-%3E%3D%2018.0.0-success?style=for-the-badge&logo=nodedotjs)](https://nodejs.org)
+
+*Detects hallucinated, typosquatted, or otherwise high-risk packages and blocks or warns before install.*
+
+</div>
+
+---
+
+## ⚡ Quick Start
+
+You can scan any existing project instantly without installing SlopGuard locally. 
 
 ```bash
 npx @vanshkaushal/slopguard@alpha scan
 ```
 
-## What it does
+---
 
-SlopGuard is a security firewall for npm packages. Before you install a dependency, SlopGuard checks if it is safe — screening for typosquatting, malicious install scripts, suspicious publishers, and supply-chain attacks.
+## 🔍 What it does
 
-## Commands reference
+SlopGuard is a security firewall for npm packages. Before you install a dependency, SlopGuard checks if it is safe — screening for typosquatting, malicious install scripts, suspicious publishers, and supply-chain attacks. It operates entirely without standing infrastructure and can be used locally, in CI/CD, or as an MCP server.
 
-- Validate a single package:
-```bash
-npx @vanshkaushal/slopguard@alpha check react
-```
+---
 
-- Validate a specific version:
-```bash
-npx @vanshkaushal/slopguard@alpha check react@18.2.0
-```
+## 💻 Commands Reference
 
-- Scan the current folder's dependencies:
-```bash
-npx @vanshkaushal/slopguard@alpha scan
-```
+| Command | Description | Example |
+| :--- | :--- | :--- |
+| `check <pkg[@version]>` | Validate a single package against policy | `npx @vanshkaushal/slopguard@alpha check react@18.2.0` |
+| `scan` | Scan all packages in the current `package.json` | `npx @vanshkaushal/slopguard@alpha scan` |
+| `scan --recursive` | Scan the full dependency graph from lockfile | `npx @vanshkaushal/slopguard@alpha scan --recursive` |
+| `scan-workspace` | Scan all packages in a monorepo workspace | `npx @vanshkaushal/slopguard@alpha scan-workspace` |
+| `install <pkg>` | Proxy npm install with pre-install validation | `npx @vanshkaushal/slopguard@alpha install lodash` |
 
-- Recursive workspace scan:
-```bash
-npx @vanshkaushal/slopguard@alpha scan --recursive
-```
+<details>
+<summary><b>🛠️ View all available flags</b> (Click to expand)</summary>
 
-Commands supported: `check <pkg[@version]>`, `scan`, `scan-workspace`, `install <pkg[@version]>`.
-
-Flags:
 - `--output=json|sarif` — Output scan results in JSON or SARIF format
 - `--json` — Alias for `--output=json`
 - `--sarif` — Alias for `--output=sarif`
 - `--policy=<mode>` — Override the active policy mode (see Policy Modes below)
 - `--offline` — Run in offline mode (skip registry checks, 50% score penalty)
-- `--dry-run` — For install: validate without actually installing
+- `--dry-run` — For `install`: validate without actually installing
 - `--allow` — Temporarily allow a package for this run
 - `--ignore-warnings` — Treat warnings as success (exit code 0)
 - `--verify-integrity=shallow|deep|false` — Control lockfile integrity verification
 
-## Policy Modes
+</details>
 
-SlopGuard comes with several built-in policy packs to suit different environments:
+---
+
+## 🛡️ Policy Modes
+
+SlopGuard comes with several built-in policy packs to suit different environments. Pass them via `--policy=<mode>`:
+
 - `permissive`: Minimal blocking, warnings only (for experimentation)
-- `balanced`: Default. Balanced between strictness and usability
+- `balanced`: **(Default)** Balanced between strictness and usability
 - `strict`: Tighter controls, provenance recommended
 - `paranoid`: Maximum strictness. Blocks new packages and missing provenance
 - `enterprise-policy`: Regulated enterprise environments (requires lockfile, limits max risk, enforces strict age limits)
@@ -59,50 +70,54 @@ SlopGuard comes with several built-in policy packs to suit different environment
 - `ai-agent-policy`: AI/ML pipeline use (relaxed provenance, allows scoped AI ecosystem packages)
 - `ci-lockdown-policy`: Reproducible CI (frozen lockfiles, fails closed, blocks install scripts)
 
-## Exit codes
+---
 
-- `0` = safe
-- `1` = warnings only (non-fatal issues)
-- `2` = hard-blocked (unsafe)
-- `3` = internal error
+## 🚦 Exit Codes
 
-## Local Development (Install & build)
+SlopGuard returns deterministic exit codes for easy CI/CD integration:
 
-**Requirements:** Node.js >= 18.0.0
+| Code | Status | Meaning |
+| :---: | :--- | :--- |
+| **`0`** | 🟢 **Safe** | All packages passed checks safely. |
+| **`1`** | 🟡 **Warning** | One or more packages trigger non-fatal issues. |
+| **`2`** | 🔴 **Blocked** | One or more packages are hard-blocked (unsafe). |
+| **`3`** | 💀 **Error** | Internal error or crash. |
 
-- Install dependencies:
-```bash
-npm install
-```
+---
 
-- Build TypeScript output:
-```bash
-npm run build
-```
+## ⚙️ Local Development (Install & Build)
 
-- Run in development (no build):
-```bash
-npm run dev
-```
+> **Requirements:** Node.js >= 18.0.0
 
+1. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+2. **Build TypeScript output:**
+   ```bash
+   npm run build
+   ```
+3. **Run in development (no build):**
+   ```bash
+   npm run dev
+   ```
 
+---
 
-**MCP server (Model Context Protocol)**
+## 🤖 MCP Server (Model Context Protocol)
 
-Run the MCP server (stdio-compatible):
+SlopGuard can be used as a stdio-compatible MCP server for AI Agents!
 
 ```bash
 node ./dist/mcp.js
 ```
 
-Supported tool calls:
-
+**Supported tool calls:**
 - `check_package` — inputs `{ package, allow?, ignoreWarnings? }`
 - `scan_package_json` — inputs `{ cwd? }`
 
-Both return JSON serialized as text for compatibility.
-
-Example MCP client entry (mcp config):
+<details>
+<summary><b>Example MCP client entry (mcp config)</b></summary>
 
 ```json
 {
@@ -114,10 +129,13 @@ Example MCP client entry (mcp config):
   }
 }
 ```
+</details>
 
-**GitHub Action**
+---
 
-This repository includes `action.yml` and a compiled action entrypoint (used from `dist/action.js`). Minimal workflow example:
+## 🐙 GitHub Action
+
+This repository includes `action.yml` and a compiled action entrypoint.
 
 ```yaml
 uses: ./.
@@ -127,9 +145,11 @@ with:
   concurrency: 10
 ```
 
-**Configuration**
+---
 
-Create `slopguard.config.js` in the repo root to override behavior. Example options:
+## 📝 Configuration
+
+Create `slopguard.config.js` in the repo root to override behavior. 
 
 ```js
 export default {
@@ -146,27 +166,16 @@ export default {
 }
 ```
 
-Hotlist data is kept in `src/data/hotlist.json` — edit cautiously. A sample entry:
+> **Note on Hotlists:** Hotlist data is kept in `src/data/hotlist.json`. Edit cautiously! 
+> Example: `[{ "name": "reacts", "source": "example", "confidence": 0.9, "notes": "common typo" }]`
 
-```json
-[{ "name": "reacts", "source": "example", "confidence": 0.9, "notes": "common typo" }]
-```
+---
 
-**Scripts**
+## 🤝 Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution workflow and hotlist rules.
 
 - `npm run build` — compile TypeScript
 - `npm run dev` — run `src/cli.ts` via `ts-node` (dev)
 - `npm test` — run repository tests (`scripts/run-tests.mjs`)
 - `npm run hotlist:validate` — validate hotlist format
-
-**Development notes**
-
-- Entry points: `src/cli.ts`, `src/mcp/mcp.ts`, `src/action.ts`.
-- Core validation logic is in `src/core/` and reused by CLI, MCP server, and the GitHub Action.
-- Tests live in `tests/` and can be executed with `npm test`.
-
-**Contributing**
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution workflow and hotlist rules.
-
-If you need help running the project locally or want me to add usage examples (GIFs, workflow examples, or expanded MCP docs), tell me which area to expand.
