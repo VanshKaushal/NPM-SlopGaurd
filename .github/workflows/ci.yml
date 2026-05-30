@@ -8,19 +8,25 @@ jobs:
   build-test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v4.2.2
+      - uses: actions/setup-node@v4.4.0
         with:
           node-version: '20'
-      - run: npm install
-      - run: npm test
+          cache: 'npm'
+      - run: npm ci
+      - name: Run tests
+        run: npm test
+        timeout-minutes: 10
+      - name: CI Audit
+        run: npx ts-node ./scripts/ci-audit.ts
 
   hotlist-validate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v4.2.2
+      - uses: actions/setup-node@v4.4.0
         with:
           node-version: '20'
-      - run: npm install
+          cache: 'npm'
+      - run: npm ci
       - run: npm run hotlist:validate

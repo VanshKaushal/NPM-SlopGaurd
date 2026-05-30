@@ -1,0 +1,14 @@
+{
+  "name": "ai-agent-policy",
+  "strictness": "strict",
+  "requireProvenance": true,
+  "allowPreReleases": true,
+  "allowUnsigned": true,
+  "allowedRegistries": ["https://registry.npmjs.org"],
+  "bannedLicenses": [],
+  "maxGraphSize": 20000,
+  "auditRequirements": {
+    "critical": "fail",
+    "high": "warn"
+  }
+}

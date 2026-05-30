@@ -90,10 +90,18 @@ export async function validatePackage(
     }
   }
 
+  let circuitOpenPenalty = 0;
+
   // Signal 1 — registry existence (hard fail only on 404)
   if (!loaded.offline && !isSignalDisabled(loaded.disableSignals, 'existence')) {
     const r = await checkPackageExists(spec.name)
-    if (r.exists === false) {
+    if (r.degraded === 'circuit_open') {
+      const info = makeSignal('existence', false, 'warn', false)
+      raw.existence = info
+      warnings.push(info)
+      console.warn("Registry unreachable — degraded mode active, score penalized")
+      circuitOpenPenalty = r.score_penalty || 40
+    } else if (r.exists === false) {
       raw.existence = makeSignal('existence', false, `status=${r.status}`, true)
       return {
         pkg: spec.name,
@@ -104,8 +112,7 @@ export async function validatePackage(
         score: 0,
         raw
       }
-    }
-    if (r.exists === null) {
+    } else if (r.exists === null) {
       const info = makeSignal('existence', true, 'unknown', true)
       raw.existence = info
       infos.push(info)
@@ -172,6 +179,11 @@ export async function validatePackage(
       raw.publisher_age = sig
       if (!passed) warnings.push(sig)
     })())
+  } else if (loaded.offline && !isSignalDisabled(loaded.disableSignals, 'publisher_age')) {
+    const info = makeSignal('publisher_age', false, 'offline-unknown')
+    info.offlineUnknown = true
+    raw.publisher_age = info
+    infos.push(info)
   }
 
   // Signal 3 — version age
@@ -191,6 +203,11 @@ export async function validatePackage(
       raw.version_age = sig
       if (!passed) warnings.push(sig)
     })())
+  } else if (loaded.offline && !isSignalDisabled(loaded.disableSignals, 'version_age')) {
+    const info = makeSignal('version_age', false, 'offline-unknown')
+    info.offlineUnknown = true
+    raw.version_age = info
+    infos.push(info)
   }
 
   // Signal 4 — download velocity
@@ -209,6 +226,11 @@ export async function validatePackage(
       raw.download_velocity = sig
       if (!passed) warnings.push(sig)
     })())
+  } else if (loaded.offline && !isSignalDisabled(loaded.disableSignals, 'download_velocity')) {
+    const info = makeSignal('download_velocity', false, 'offline-unknown')
+    info.offlineUnknown = true
+    raw.download_velocity = info
+    infos.push(info)
   }
 
   // Signal 6 — provenance attestation
@@ -226,11 +248,21 @@ export async function validatePackage(
       raw.provenance = sig
       if (!passed) warnings.push(sig)
     })())
+  } else if (loaded.offline && !isSignalDisabled(loaded.disableSignals, 'provenance')) {
+    const info = makeSignal('provenance', false, 'offline-unknown')
+    info.offlineUnknown = true
+    raw.provenance = info
+    infos.push(info)
   }
 
   await Promise.all(signalPromises)
 
-  const score = scoreSignals(raw)
+  let score = scoreSignals(raw)
+  score -= circuitOpenPenalty
+  if (circuitOpenPenalty > 0 && score > 55) {
+    score = 55
+  }
+  if (score < 0) score = 0
 
   return {
     pkg: spec.name,

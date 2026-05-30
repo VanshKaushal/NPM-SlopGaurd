@@ -1,0 +1,14 @@
+{
+  "name": "ci-lockdown-policy",
+  "strictness": "strict",
+  "requireProvenance": false,
+  "allowPreReleases": false,
+  "allowUnsigned": true,
+  "frozenLockfileOnly": true,
+  "allowedRegistries": ["https://registry.npmjs.org"],
+  "bannedLicenses": [],
+  "maxGraphSize": 100000,
+  "auditRequirements": {
+    "critical": "fail"
+  }
+}

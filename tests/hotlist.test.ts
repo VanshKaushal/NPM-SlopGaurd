@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'fs'
 import path from 'path'
-import { isHotlisted, loadHotlist } from '../dist/core/hotlist.js'
+import { isHotlisted, loadHotlist } from '../src/core/hotlist.js'
 
 const hotlistPath = path.resolve(process.cwd(), 'src', 'data', 'hotlist.json')
 

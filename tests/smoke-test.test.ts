@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 
 test('smoke-test script succeeds', () => {
-  const res = spawnSync(process.execPath, ['--loader', 'ts-node/esm', './scripts/smoke-test.ts'], {
+  const res = spawnSync(process.execPath, ['./dist/scripts/smoke-test.js'], {
     cwd: process.cwd(),
     env: {
       ...process.env,

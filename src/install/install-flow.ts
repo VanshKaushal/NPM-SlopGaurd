@@ -13,6 +13,7 @@ import { PackageManager } from './args.js'
 import { loadPolicyBundle } from '../mcp/policy-loader.js'
 import { enforcePolicy } from '../mcp/enforcement.js'
 import { getAgentContext } from '../mcp/agent-context.js'
+import { OverrideAction } from '../core/overrides.js'
 
 export type InstallFlowOptions = {
   pkg: string
@@ -94,14 +95,25 @@ export async function runInstallFlow(options: InstallFlowOptions): Promise<numbe
 
   const result = await validatePackage(options.pkg, config)
   const overrides = options.allow
-    ? [...policyBundle.overrides, { name: spec.name, action: 'allow', reason: 'cli --allow' }]
+    ? [...policyBundle.overrides, { name: spec.name, action: 'allow' as OverrideAction, reason: 'cli --allow' }]
     : policyBundle.overrides
 
+  if (options.offline) {
+    console.log(chalk.yellow("[OFFLINE MODE] Score confidence reduced. Use --offline only with pre-validated environments."))
+  }
   printResult(options.pkg, result)
   console.log(`  confidence: ${explainResult(result).confidence}`)
 
+  let realName = spec.name
+  let alias: string | undefined = undefined
+  if (spec.version?.startsWith('npm:')) {
+    alias = spec.name
+    realName = spec.version.slice(4).split('@')[0]
+  }
+
   const enforcement = enforcePolicy({
-    pkg: spec.name,
+    pkg: realName,
+    alias,
     result,
     policy: policyBundle.policy,
     allowlist: policyBundle.allowlist,

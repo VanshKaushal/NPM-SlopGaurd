@@ -1,24 +1,51 @@
 {
-  "name": "slopguard",
-  "version": "0.1.0",
+  "name": "@vanshkaushal/slopguard",
+  "version": "0.1.0-alpha.1",
   "type": "module",
-  "description": "SlopGuard — zero-infrastructure npm package validation firewall",
-  "main": "./dist/cli.js",
+  "description": "Zero-infrastructure npm supply-chain security firewall",
+  "main": "./dist/index.js",
   "bin": {
     "slopguard": "./dist/cli.js"
   },
   "scripts": {
-    "build": "tsc -p .",
-    "start": "node ./dist/cli.js",
-    "dev": "ts-node-esm src/cli.ts",
-    "test": "npm run build && node --test ./tests/*.test.js",
+    "build": "tsc -p . && node -e \"const fs=require('fs'); fs.writeFileSync('dist/cli.js', '#!/usr/bin/env node\\nimport \\'./src/cli.js\\';'); fs.writeFileSync('dist/index.js', 'export * from \\'./src/mcp.js\\';');\"",
+    "start": "node ./dist/src/cli.js",
+    "dev": "npm run build && node ./dist/src/cli.js",
+    "test": "npm run build && node --test dist/tests/*.test.js",
+    "test:fast": "npm run build && node --test dist/tests/adversarial-package-tests.test.js dist/tests/cache.test.js dist/tests/chaos-monorepo.test.js dist/tests/ecosystem-collision.test.js dist/tests/hotlist.test.js dist/tests/memory-forensics.test.js dist/tests/monorepo-validation.test.js dist/tests/release-check.test.js dist/tests/repro-chaos.test.js dist/tests/runtime-warfare.test.js dist/tests/validator.test.js dist/tests/verify-alias-bypass.test.js dist/tests/verify-build.test.js dist/tests/verify-circuit-breaker.test.js dist/tests/verify-git-refs.test.js dist/tests/verify-lockfile-integrity.test.js dist/tests/verify-offline-penalty.test.js dist/tests/verify-pattern-matching.test.js dist/tests/policy-packs.test.js",
+    "test:slow": "npm run build && node --test dist/tests/integrity-check.test.js dist/tests/package-audit.test.js dist/tests/performance-chaos.test.js dist/tests/reproducibility.test.js dist/tests/smoke-test.test.js dist/tests/verify-exit-codes.test.js dist/tests/verify-json-output.test.js",
+    "benchmark": "npm run build && node dist/scripts/benchmark.js",
     "hotlist:validate": "node ./scripts/validate-hotlist.mjs"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "dist/src/",
+    "dist/cli.js",
+    "dist/index.js",
+    "configs/",
+    "README.md",
+    "CHANGELOG.md",
+    "KNOWN-ISSUES.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "npm",
+    "security",
+    "supply-chain",
+    "package-validation",
+    "dependency-firewall",
+    "governance"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/VanshKaushal/NPM-SlopGaurd"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
+    "@yarnpkg/lockfile": "^1.1.0",
     "chalk": "^5.0.0",
     "semver": "^7.6.0",
     "yaml": "^2.5.0",
@@ -26,7 +53,8 @@
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
-    "ts-node": "^10.0.0",
+    "@types/semver": "^7.7.1",
+    "@types/yarnpkg__lockfile": "^1.1.9",
     "typescript": "^5.0.0"
   }
 }

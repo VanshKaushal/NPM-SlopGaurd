@@ -5,13 +5,15 @@ export type SignalName =
   | 'version_age'
   | 'download_velocity'
   | 'provenance'
+  | 'git_mutability'
 
 export type SignalResult = {
   name: SignalName
-  hardFail: boolean
+  hardFail?: boolean
   passed: boolean
   message?: string
   meta?: Record<string, any>
+  offlineUnknown?: boolean
 }
 
 export type ValidationResult = {
@@ -32,6 +34,7 @@ export type DependencyNode = {
   resolved?: string
   dev?: boolean
   optional?: boolean
+  alias?: string
 }
 
 export type DependencyGraph = {

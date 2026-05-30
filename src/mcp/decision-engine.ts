@@ -26,6 +26,7 @@ function hasMissingProvenance(result: ValidationResult) {
   const sig = result.raw.provenance
   if (!sig) return false
   if (sig.passed) return false
+  if (sig.offlineUnknown) return true
   if (sig.message?.includes('unknown') || sig.message?.includes('offline-skip')) return false
   return true
 }

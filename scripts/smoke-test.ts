@@ -1,4 +1,6 @@
-#!/usr/bin/env ts-node
+#!/usr/bin/env node
+// @ts-nocheck
+
 import { copyFileSync, mkdtempSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
@@ -68,7 +70,7 @@ function buildAndPack() {
 	} else {
 		log('Skipping build due to SLOPGUARD_SKIP_BUILD=1');
 	}
-	const out = execSync('npm pack --json', { stdio: 'pipe' }).toString();
+	const out = execSync('npm pack --json', { stdio: 'pipe', maxBuffer: 1024 * 1024 * 64, encoding: 'utf8' }).toString();
 	const info = JSON.parse(out);
 	const pack = Array.isArray(info) ? info[0] : info;
 	const tarball = pack.filename;
@@ -99,61 +101,35 @@ function assertContains(label: string, output: string, patterns: RegExp[]) {
 function main() {
 	log('Starting smoke tests');
 	const repoRoot = process.cwd();
-	const useTs = process.env.SLOPGUARD_SMOKE_USE_TS === '1';
-	let tarball: string | null = null;
-	if (!useTs) {
-		tarball = buildAndPack();
-		tarball = join(repoRoot, tarball);
-		log('Packed tarball:', tarball);
-	} else {
-		log('Using ts-node CLI execution due to SLOPGUARD_SMOKE_USE_TS=1');
-	}
+	
+	let tarball = buildAndPack();
+	tarball = join(repoRoot, tarball);
+	log('Packed tarball:', tarball);
 
 	const fixture = createFixtureWorkspace();
 	log('Fixture workspace:', fixture);
-	if (tarball) {
-		const localTar = join(fixture, 'slopguard.tgz');
-		copyFileSync(tarball, localTar);
-		tarball = localTar;
-		log('Copied tarball to fixture:', tarball);
-	}
+	
+	const localTar = join(fixture, 'slopguard.tgz');
+	copyFileSync(tarball, localTar);
+	tarball = localTar;
+	log('Copied tarball to fixture:', tarball);
+
+	const tarballSpec = `file:${tarball}`;
 
 	// 1) npx slopguard check react
-	const loaderPath = join(repoRoot, 'node_modules', 'ts-node', 'esm.mjs');
-	const loaderUrl = pathToFileURL(loaderPath).href;
-	const cliUrl = pathToFileURL(join(repoRoot, 'src', 'cli.ts')).href;
-	const tsEnv = {
-		TS_NODE_FILES: 'true',
-		TS_NODE_TRANSPILE_ONLY: 'true',
-		NODE_PATH: join(repoRoot, 'node_modules')
-	};
-	const tsRunner = (args: string[]) => {
-		const chdir = JSON.stringify(fixture);
-		const importPath = JSON.stringify(cliUrl);
-		const argv = JSON.stringify(['node', 'cli', ...args]);
-		const evalCode = `process.argv = ${argv}; process.chdir(${chdir}); import(${importPath});`;
-		return runNode(['--loader', loaderUrl, '-e', evalCode], repoRoot, tsEnv);
-	};
-	const tarballSpec = tarball ? `file:${tarball}` : '';
-	const check = useTs
-		? tsRunner(['check', 'react'])
-		: runNpx(['--yes', tarballSpec, 'check', 'react'], fixture);
+	const check = runNpx(['--yes', tarballSpec, 'check', 'react'], fixture);
 	const checkOut = `${check.stdout}\n${check.stderr}`;
 	assertExit('check', check);
 	assertContains('check', checkOut, [/confidence/i, /reasons/i]);
 
 	// 2) npx slopguard scan
-	const scan = useTs
-		? tsRunner(['scan'])
-		: runNpx(['--yes', tarballSpec, 'scan'], fixture);
+	const scan = runNpx(['--yes', tarballSpec, 'scan'], fixture);
 	const scanOut = `${scan.stdout}\n${scan.stderr}`;
 	assertExit('scan', scan);
 	assertContains('scan', scanOut, [/react/i, /confidence/i, /reasons/i]);
 
 	// 3) npx slopguard install lodash --dry-run
-	const install = useTs
-		? tsRunner(['install', 'lodash', '--dry-run'])
-		: runNpx(['--yes', tarballSpec, 'install', 'lodash', '--dry-run'], fixture);
+	const install = runNpx(['--yes', tarballSpec, 'install', 'lodash', '--dry-run'], fixture);
 	const installOut = `${install.stdout}\n${install.stderr}`;
 	assertExit('install', install);
 	assertContains('install', installOut, [/Dry run: install skipped/i, /policy/i, /decision/i, /confidence/i]);

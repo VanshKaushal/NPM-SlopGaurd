@@ -10,7 +10,10 @@ import { PolicyOverride, loadOverridesConfig } from '../core/overrides.js'
 import { resolveWorkspacePolicyPaths } from './workspace-policy.js'
 
 const policyFileSchema = z.object({
-  mode: z.enum(['permissive', 'balanced', 'strict', 'paranoid']).optional(),
+  mode: z.enum([
+    'permissive', 'balanced', 'strict', 'paranoid',
+    'enterprise-policy', 'fintech-policy', 'ai-agent-policy', 'ci-lockdown-policy'
+  ]).optional(),
   policy: z.object({
     maxRiskScore: z.number().int().nonnegative().optional(),
     blockHallucinatedPackages: z.boolean().optional(),
@@ -18,7 +21,20 @@ const policyFileSchema = z.object({
     requireProvenance: z.boolean().optional(),
     maxDependencyDepth: z.number().int().positive().optional(),
     blockNewPackages: z.boolean().optional(),
-    minimumConfidence: z.enum(['low', 'medium', 'high']).optional()
+    minimumConfidence: z.enum(['low', 'medium', 'high']).optional(),
+    allowSubstringMatching: z.boolean().optional(),
+    allowMutableGitRefs: z.boolean().optional(),
+    requireLockfile: z.boolean().optional(),
+    allowedRegistries: z.array(z.string()).optional(),
+    blockOnCircuitOpen: z.boolean().optional(),
+    minPublisherAgeDays: z.number().int().nonnegative().optional(),
+    minVersionAgeDays: z.number().int().nonnegative().optional(),
+    blockUnverifiedIntegrity: z.boolean().optional(),
+    requireSBOM: z.boolean().optional(),
+    auditLogPath: z.string().optional(),
+    allowedScopes: z.array(z.string()).optional(),
+    offlineMode: z.boolean().optional(),
+    frozenLockfile: z.boolean().optional()
   }).partial().optional(),
   allowlist: z.array(z.string()).optional(),
   blocklist: z.array(z.string()).optional(),

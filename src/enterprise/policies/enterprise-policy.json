@@ -1,0 +1,14 @@
+{
+  "name": "enterprise-policy",
+  "strictness": "strict",
+  "requireProvenance": true,
+  "allowPreReleases": false,
+  "allowUnsigned": true,
+  "allowedRegistries": ["https://registry.npmjs.org"],
+  "bannedLicenses": [],
+  "maxGraphSize": 50000,
+  "auditRequirements": {
+    "critical": "fail",
+    "high": "warn"
+  }
+}

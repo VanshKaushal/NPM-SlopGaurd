@@ -1,0 +1,15 @@
+__metadata:
+  version: 6
+  cacheKey: 8
+
+"lodash@npm:4.17.21":
+  version: 4.17.21
+  resolution: "lodash@npm:4.17.21"
+  dependencies:
+    foo: 1.0.0
+  checksum: "12345"
+
+"my-lodash@npm:lodash@4.17.21":
+  version: 4.17.21
+  resolution: "lodash@npm:4.17.21"
+  checksum: "12345"

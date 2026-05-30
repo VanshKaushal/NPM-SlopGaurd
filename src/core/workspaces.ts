@@ -63,7 +63,8 @@ function expandWorkspaceGlobs(rootDir: string, patterns: string[]) {
 
   const regexes = patterns.map(patternToRegExp)
   for (const item of rels) {
-    if (regexes.some(rx => rx.test(item.rel))) matches.push(item.file)
+    const normalizedRel = item.rel.replace(/\\/g, '/')
+    if (regexes.some(rx => rx.test(normalizedRel))) matches.push(item.file)
   }
 
   const rootPackageJson = path.join(rootDir, 'package.json')

@@ -1,0 +1,19 @@
+{
+  "maxRiskScore": 50,
+  "blockHallucinatedPackages": true,
+  "allowInstallScripts": "block",
+  "requireProvenance": false,
+  "maxDependencyDepth": 25,
+  "blockNewPackages": false,
+  "minimumConfidence": "low",
+  "allowSubstringMatching": false,
+  "allowMutableGitRefs": false,
+  "minPublisherAgeDays": 7,
+  "allowedScopes": [
+    "@anthropic",
+    "@openai",
+    "@huggingface",
+    "@langchain",
+    "@llamaindex"
+  ]
+}

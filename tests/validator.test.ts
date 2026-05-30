@@ -1,6 +1,7 @@
+// @ts-nocheck
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { validatePackage } from '../dist/core/validator.js'
+import { validatePackage } from '../src/core/validator.js'
 
 const originalFetch = globalThis.fetch
 

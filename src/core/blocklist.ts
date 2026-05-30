@@ -6,15 +6,7 @@ function normalizeList(list: string[]) {
   return Array.from(new Set(list.map(entry => entry.trim()).filter(Boolean)))
 }
 
-function matchesPattern(name: string, pattern: string) {
-  if (!pattern) return false
-  if (pattern === name) return true
-  if (pattern.startsWith('@') && pattern.endsWith('/*')) {
-    const scope = pattern.slice(0, -2)
-    return name.startsWith(`${scope}/`)
-  }
-  return false
-}
+import { matchesPattern } from './pattern-matching.js'
 
 export function loadBlocklistConfig(input: unknown): BlocklistConfig {
   if (Array.isArray(input)) return { block: normalizeList(input.filter(Boolean) as string[]) }
@@ -24,9 +16,9 @@ export function loadBlocklistConfig(input: unknown): BlocklistConfig {
   return { block: [] }
 }
 
-export function matchBlocklist(name: string, blocklist: BlocklistConfig): string | null {
+export function matchBlocklist(name: string, blocklist: BlocklistConfig, allowSubstringMatching: boolean = false): string | null {
   for (const entry of blocklist.block) {
-    if (matchesPattern(name, entry)) return entry
+    if (matchesPattern(name, entry, allowSubstringMatching)) return entry
   }
   return null
 }

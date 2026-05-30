@@ -39,14 +39,21 @@ function packAndProvenance(fixture: string) {
     predicateType: 'https://slsa.dev/provenance/v1'
   };
   const provPath = join(fixture, 'provenance.json');
-  writeFileSync(provPath, JSON.stringify(provenance, null, 2));
+  
+  const envelope = {
+    payloadType: 'application/vnd.in-toto+json',
+    payload: Buffer.from(JSON.stringify(provenance, null, 2)).toString('base64'),
+    signatures: []
+  };
+  
+  writeFileSync(provPath, JSON.stringify(envelope, null, 2));
   return { tarHash, provPath };
 }
 
 test('integrity-check passes with matching provenance', () => {
   const fixture = createFixture();
   const { provPath } = packAndProvenance(fixture);
-  const res = spawnSync(process.execPath, ['--loader', 'ts-node/esm', './scripts/integrity-check.ts', '--workspace', fixture, '--provenance-file', provPath, '--require-provenance'], {
+  const res = spawnSync(process.execPath, ['./dist/scripts/integrity-check.js', '--workspace', fixture, '--provenance-file', provPath, '--require-provenance'], {
     cwd: process.cwd(),
     env: { ...process.env, TS_NODE_FILES: 'true', TS_NODE_TRANSPILE_ONLY: 'true' },
     encoding: 'utf8'
@@ -57,7 +64,7 @@ test('integrity-check passes with matching provenance', () => {
 
 test('integrity-check fails when provenance missing', () => {
   const fixture = createFixture();
-  const res = spawnSync(process.execPath, ['--loader', 'ts-node/esm', './scripts/integrity-check.ts', '--workspace', fixture, '--require-provenance'], {
+  const res = spawnSync(process.execPath, ['./dist/scripts/integrity-check.js', '--workspace', fixture, '--require-provenance'], {
     cwd: process.cwd(),
     env: { ...process.env, TS_NODE_FILES: 'true', TS_NODE_TRANSPILE_ONLY: 'true' },
     encoding: 'utf8'

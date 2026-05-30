@@ -1,0 +1,1 @@
+{"dependencies":{"testA":"github:user/repo#main","testB":"github:user/repo","testC":"github:user/repo#a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2","testD":"1.0.0"}}

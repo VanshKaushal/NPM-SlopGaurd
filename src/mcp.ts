@@ -19,6 +19,7 @@ import { buildNpmInstallCommand } from './install/npm.js'
 import { buildPnpmInstallCommand } from './install/pnpm.js'
 import { buildYarnInstallCommand } from './install/yarn.js'
 import { spawnCommand } from './install/spawn.js'
+import { OverrideAction } from './core/overrides.js'
 
 const checkInput = {
   package: z.string().min(1),
@@ -178,7 +179,7 @@ async function main() {
     })
     const result = await validatePackage(parsed.package, { offline: parsed.offline })
     const overrides = parsed.allow
-      ? [...policyBundle.overrides, { name: spec.name, action: 'allow', reason: 'mcp allow' }]
+      ? [...policyBundle.overrides, { name: spec.name, action: 'allow' as OverrideAction, reason: 'mcp allow' }]
       : policyBundle.overrides
 
     const enforcement = enforcePolicy({

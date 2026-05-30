@@ -1,0 +1,8 @@
+tests/
+src/
+.benchmarks/
+.github/
+scripts/
+*.test.ts
+tsconfig.json
+.eslintrc*
